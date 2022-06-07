@@ -140,6 +140,12 @@ class LRTSAC {
   double bisectLikelihood(double sigma, double L, const size_t num_samples) const;
   void computeEpsMin(std::vector<double> &Sigma, std::vector<double> &epsMin,
                      double L, const size_t num_samples) const;
+  bool computeEps(const typename Estimator::M_t &model,
+                  const std::vector<typename Estimator::X_t>& X,
+                  const std::vector<typename Estimator::Y_t>& Y,
+                  const std::vector<double> &Sigma,
+                  std::vector<double> &eps, const int num_samples,
+                  const std::vector<double> &epsMin) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -249,6 +255,46 @@ void LRTSAC<Estimator, SupportMeasurer, Sampler>::computeEpsMin(
     Sigma.erase(it, Sigma.end());
 }
 
+/// Computation of the inlier ratios (\a eps) for each sigma (algorithm 4).
+/// Early bailout may occur if the model is unlikely a better one.
+/// \param model Current model to test
+/// \param Sigma Set of possible values for sigma
+/// \param[out] eps Inlier ratio for each value of sigma
+/// \param[out] vpm Number of applied verifications
+/// \param epsMin Min eps value for better model (used only for bailout)
+/// \return Indicate whether eps is exact (no early bailout)
+template <typename Estimator, typename SupportMeasurer, typename Sampler>
+bool LRTSAC<Estimator, SupportMeasurer, Sampler>::computeEps(
+    const typename Estimator::M_t &model,
+    const std::vector<typename Estimator::X_t>& X,
+    const std::vector<typename Estimator::Y_t>& Y,
+    const std::vector<double> &Sigma,
+    std::vector<double> &eps, const int num_samples,
+    const std::vector<double> &epsMin) const {
+  const double increment = 1.0/num_samples;
+  for (int j=0, bailCount=0; j<num_samples; j++) {
+    double error = estimator.Residual(X[j], Y[j], model);
+
+    for (size_t i=0; i<Sigma.size(); i++)
+      if (error <= Sigma[i] * Sigma[i])
+        eps[i] += increment;
+
+    if (options_.confidenceIIB<1 && ++bailCount==_B) {
+      bailCount=0; // Round counter, cheaper than Euclidean division
+      double tau = std::sqrt(-(std::log(1-options_.confidenceIIB)
+                               - std::log(std::floor(num_samples/_B)))
+                             / (2*(j+1))); // (19)
+      bool bailout = true;
+      for (size_t i=0; bailout && i<Sigma.size(); i++)
+        if (eps[i]*num_samples >= (j+1)*(epsMin[i]-tau))
+          bailout = false;
+      if (bailout)
+        return false;
+    }
+  }
+  return true;
+}
+
 template <typename Estimator, typename SupportMeasurer, typename Sampler>
 typename LRTSAC<Estimator, SupportMeasurer, Sampler>::Report
 LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
@@ -326,8 +372,11 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
 
     // Iterate through all estimated models.
     for (const auto& sample_model : sample_models) {
-      estimator.Residuals(X, Y, sample_model, &residuals);
-      CHECK_EQ(residuals.size(), num_samples);
+      std::vector<double> eps(Sigma.size(),0); // Inlier ratios
+      bool noBailout = computeEps(sample_model, X, Y, Sigma, eps,
+                                  num_samples, epsMin);
+      if(! noBailout)
+        continue;
 
       const auto support = support_measurer.Evaluate(residuals, max_residual);
 
