@@ -130,4 +130,26 @@ void HomographyMatrixEstimator::Residuals(const std::vector<X_t>& points1,
   }
 }
 
+double HomographyMatrixEstimator::Residuals(const X_t& point1,
+                                            const Y_t& point2, const M_t& H) {
+  // Note that this code might not be as nice as Eigen expressions,
+  // but it is significantly faster in various tests.
+  std::vector<double> residuals;
+  std::vector<X_t> points1 = {point1};
+  std::vector<X_t> points2 = {point2};
+  Residuals(points1, points2, H, &residuals);
+  return residuals[0];
+}
+
+double pSigma(const double sigma, const int width1, const int height1,
+              const int width2, const int height2, const bool leftSide = true) {
+  const double _areaLeft = height1 * width1, _areaRight = height2 * width2;
+  double area;
+  if (leftSide)
+    area = _areaLeft;
+  else
+    area = _areaRight;
+  return M_PI * sigma * sigma / (double)area;
+}
+
 }  // namespace colmap

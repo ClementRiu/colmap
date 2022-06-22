@@ -222,7 +222,7 @@ void LRTSAC<Estimator, SupportMeasurer, Sampler>::initSigma(
 template <typename Estimator, typename SupportMeasurer, typename Sampler>
 double LRTSAC<Estimator, SupportMeasurer, Sampler>::likelihood(
     double eps, double sigma) const {
-  double p = Estimator::pSigma(sigma), q = 1 - p;
+  double p = Estimator.pSigma(sigma), q = 1 - p;
   if (p < 1.0e-10 || q < 1.0e-10)
     throw std::domain_error(
         "Error likelihood:\n"
