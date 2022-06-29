@@ -81,7 +81,9 @@ class HomographyMatrixEstimator {
 
   static double Residuals(const X_t& point1, const Y_t& point2, const M_t& H);
 
-  static double pSigma(const double sigma; , const bool leftside = true);
+  static double pSigma(const double sigma,
+                       const int imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 }  // namespace colmap

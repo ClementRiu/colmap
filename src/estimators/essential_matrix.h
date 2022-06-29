@@ -83,6 +83,12 @@ class EssentialMatrixFivePointEstimator {
   static void Residuals(const std::vector<X_t>& points1,
                         const std::vector<Y_t>& points2, const M_t& E,
                         std::vector<double>* residuals);
+
+  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& E);
+
+  static double pSigma(const double sigma,
+                       const int imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 // Essential matrix estimator from corresponding normalized point pairs.
@@ -120,6 +126,12 @@ class EssentialMatrixEightPointEstimator {
   static void Residuals(const std::vector<X_t>& points1,
                         const std::vector<Y_t>& points2, const M_t& E,
                         std::vector<double>* residuals);
+
+  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& E);
+
+  static double pSigma(const double sigma,
+                       const int imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 }  // namespace colmap

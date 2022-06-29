@@ -141,9 +141,11 @@ double HomographyMatrixEstimator::Residuals(const X_t& point1,
   return residuals[0];
 }
 
-double pSigma(const double sigma, const int width1, const int height1,
-              const int width2, const int height2, const bool leftSide = true) {
-  const double _areaLeft = height1 * width1, _areaRight = height2 * width2;
+double HomographyMatrixEstimator::pSigma(const double sigma,
+                                         const int imagesDimensions[],
+                                         const bool leftSide) {
+  const double _areaLeft = imagesDimensions[0] * imagesDimensions[1],
+               _areaRight = imagesDimensions[2] * imagesDimensions[3];
   double area;
   if (leftSide)
     area = _areaLeft;

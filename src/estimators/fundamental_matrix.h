@@ -83,6 +83,12 @@ class FundamentalMatrixSevenPointEstimator {
   static void Residuals(const std::vector<X_t>& points1,
                         const std::vector<Y_t>& points2, const M_t& F,
                         std::vector<double>* residuals);
+
+  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& F);
+
+  static double pSigma(const double sigma,
+                       const int imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 // Fundamental matrix estimator from corresponding point pairs.
@@ -122,6 +128,12 @@ class FundamentalMatrixEightPointEstimator {
   static void Residuals(const std::vector<X_t>& points1,
                         const std::vector<Y_t>& points2, const M_t& F,
                         std::vector<double>* residuals);
+
+  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& F);
+
+  static double pSigma(const double sigma,
+                       const int imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 }  // namespace colmap

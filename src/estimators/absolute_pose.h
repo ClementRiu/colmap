@@ -81,6 +81,12 @@ class P3PEstimator {
   static void Residuals(const std::vector<X_t>& points2D,
                         const std::vector<Y_t>& points3D,
                         const M_t& proj_matrix, std::vector<double>* residuals);
+
+  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& H);
+
+  static double pSigma(const double sigma,
+                       const int imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 // EPNP solver for the PNP (Perspective-N-Point) problem. The solver needs a
@@ -126,6 +132,12 @@ class EPNPEstimator {
   static void Residuals(const std::vector<X_t>& points2D,
                         const std::vector<Y_t>& points3D,
                         const M_t& proj_matrix, std::vector<double>* residuals);
+
+  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& H);
+
+  static double pSigma(const double sigma,
+                       const int imagesDimensions[],
+                       const bool leftSide = true);
 
  private:
   bool ComputePose(const std::vector<Eigen::Vector2d>& points2D,

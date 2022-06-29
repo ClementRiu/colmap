@@ -180,6 +180,24 @@ void P3PEstimator::Residuals(const std::vector<X_t>& points2D,
   ComputeSquaredReprojectionError(points2D, points3D, proj_matrix, residuals);
 }
 
+double P3PEstimator::Residuals(const X_t& point2D, const Y_t& point3D,
+                               const M_t& proj_matrix) {
+  // Note that this code might not be as nice as Eigen expressions,
+  // but it is significantly faster in various tests.
+  std::vector<double> residuals;
+  std::vector<X_t> points2D = {point2D};
+  std::vector<Y_t> points3D = {point3D};
+  Residuals(points2D, points3D, proj_matrix, &residuals);
+  return residuals[0];
+}
+
+double P3PEstimator::pSigma(const double sigma,
+                            const int imagesDimensions[],
+                            const bool leftSide) {
+  const double _area = imagesDimensions[0] * imagesDimensions[1];
+  return M_PI * sigma * sigma / (double)_area;
+}
+
 std::vector<EPNPEstimator::M_t> EPNPEstimator::Estimate(
     const std::vector<X_t>& points2D, const std::vector<Y_t>& points3D) {
   CHECK_GE(points2D.size(), 4);
@@ -199,6 +217,23 @@ void EPNPEstimator::Residuals(const std::vector<X_t>& points2D,
                               const M_t& proj_matrix,
                               std::vector<double>* residuals) {
   ComputeSquaredReprojectionError(points2D, points3D, proj_matrix, residuals);
+}
+
+double EPNPEstimator::Residuals(const X_t& point2D, const Y_t& point3D,
+                                const M_t& proj_matrix) {
+  // Note that this code might not be as nice as Eigen expressions,
+  // but it is significantly faster in various tests.
+  std::vector<double> residuals;
+  std::vector<X_t> points2D = {point2D};
+  std::vector<Y_t> points3D = {point3D};
+  Residuals(points2D, points3D, proj_matrix, &residuals);
+  return residuals[0];
+}
+
+double EPNPEstimator::pSigma(const double sigma, const int imagesDimensions[],
+                             const bool leftSide) {
+  const double _area = imagesDimensions[0] * imagesDimensions[1];
+  return M_PI * sigma * sigma / (double)_area;
 }
 
 bool EPNPEstimator::ComputePose(const std::vector<Eigen::Vector2d>& points2D,
