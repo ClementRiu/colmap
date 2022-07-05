@@ -61,6 +61,8 @@ class P3PEstimator {
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 3;
 
+  static const int nDegreeOfFreedom = 6;
+
   // Estimate the most probable solution of the P3P problem from a set of
   // three 2D-3D point correspondences.
   //
@@ -82,10 +84,10 @@ class P3PEstimator {
                         const std::vector<Y_t>& points3D,
                         const M_t& proj_matrix, std::vector<double>* residuals);
 
-  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& H);
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& H);
 
   static double pSigma(const double sigma,
-                       const int imagesDimensions[],
+                       const size_t imagesDimensions[],
                        const bool leftSide = true);
 };
 
@@ -133,10 +135,10 @@ class EPNPEstimator {
                         const std::vector<Y_t>& points3D,
                         const M_t& proj_matrix, std::vector<double>* residuals);
 
-  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& H);
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& H);
 
   static double pSigma(const double sigma,
-                       const int imagesDimensions[],
+                       const size_t imagesDimensions[],
                        const bool leftSide = true);
 
  private:

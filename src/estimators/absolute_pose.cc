@@ -180,7 +180,7 @@ void P3PEstimator::Residuals(const std::vector<X_t>& points2D,
   ComputeSquaredReprojectionError(points2D, points3D, proj_matrix, residuals);
 }
 
-double P3PEstimator::Residuals(const X_t& point2D, const Y_t& point3D,
+double P3PEstimator::Residual(const X_t& point2D, const Y_t& point3D,
                                const M_t& proj_matrix) {
   // Note that this code might not be as nice as Eigen expressions,
   // but it is significantly faster in various tests.
@@ -192,7 +192,7 @@ double P3PEstimator::Residuals(const X_t& point2D, const Y_t& point3D,
 }
 
 double P3PEstimator::pSigma(const double sigma,
-                            const int imagesDimensions[],
+                            const size_t imagesDimensions[],
                             const bool leftSide) {
   const double _area = imagesDimensions[0] * imagesDimensions[1];
   return M_PI * sigma * sigma / (double)_area;
@@ -219,7 +219,7 @@ void EPNPEstimator::Residuals(const std::vector<X_t>& points2D,
   ComputeSquaredReprojectionError(points2D, points3D, proj_matrix, residuals);
 }
 
-double EPNPEstimator::Residuals(const X_t& point2D, const Y_t& point3D,
+double EPNPEstimator::Residual(const X_t& point2D, const Y_t& point3D,
                                 const M_t& proj_matrix) {
   // Note that this code might not be as nice as Eigen expressions,
   // but it is significantly faster in various tests.
@@ -230,7 +230,7 @@ double EPNPEstimator::Residuals(const X_t& point2D, const Y_t& point3D,
   return residuals[0];
 }
 
-double EPNPEstimator::pSigma(const double sigma, const int imagesDimensions[],
+double EPNPEstimator::pSigma(const double sigma, const size_t imagesDimensions[],
                              const bool leftSide) {
   const double _area = imagesDimensions[0] * imagesDimensions[1];
   return M_PI * sigma * sigma / (double)_area;

@@ -40,7 +40,7 @@
 
 #include "base/camera.h"
 #include "base/camera_models.h"
-#include "optim/loransac.h"
+#include "optim/lrtsac.h"
 #include "util/alignment.h"
 #include "util/logging.h"
 #include "util/threading.h"
@@ -67,7 +67,7 @@ struct AbsolutePoseEstimationOptions {
   int num_threads = ThreadPool::kMaxNumThreads;
 
   // Options used for P3P RANSAC.
-  RANSACOptions ransac_options;
+  LRTSACOptions ransac_options;
 
   void Check() const {
     CHECK_GT(num_focal_length_samples, 0);
@@ -143,7 +143,7 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
 // @param tvec                 Estimated translation component.
 //
 // @return                     Number of RANSAC inliers.
-size_t EstimateRelativePose(const RANSACOptions& ransac_options,
+size_t EstimateRelativePose(const LRTSACOptions& ransac_options,
                             const std::vector<Eigen::Vector2d>& points1,
                             const std::vector<Eigen::Vector2d>& points2,
                             Eigen::Vector4d* qvec, Eigen::Vector3d* tvec);

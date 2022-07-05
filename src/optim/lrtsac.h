@@ -142,7 +142,7 @@ class LRTSAC {
   // @return               The report with the results of the estimation.
   Report Estimate(const std::vector<typename Estimator::X_t>& X,
                   const std::vector<typename Estimator::Y_t>& Y,
-                  int imagesDimensions[]);
+                  size_t imagesDimensions[]);
 
   // Objects used in RANSAC procedure. Access useful to define custom behavior
   // through options or e.g. to compute residuals.
@@ -159,12 +159,12 @@ class LRTSAC {
   double _minL;      ///< Min log-likelihood deduced from alpha
 
   void initSigma(std::vector<double>& Sigma) const;
-  double likelihood(double eps, double sigma, int imagesDimensions[]) const;
+  double likelihood(double eps, double sigma, size_t imagesDimensions[]) const;
   double bisectLikelihood(double sigma, double L, const size_t num_samples,
-                          int imagesDimensions[]) const;
+                          size_t imagesDimensions[]) const;
   void computeEpsMin(std::vector<double>& Sigma, std::vector<double>& epsMin,
                      double L, const size_t num_samples,
-                     int imagesDimensions[]) const;
+                     size_t imagesDimensions[]) const;
   bool computeEps(const typename Estimator::M_t& model,
                   const std::vector<typename Estimator::X_t>& X,
                   const std::vector<typename Estimator::Y_t>& Y,
@@ -174,7 +174,7 @@ class LRTSAC {
 
   double bestSigma(const std::vector<double>& Sigma,
                    const std::vector<double>& eps, double& L,
-                   double& epsBest, int imagesDimensions[]) const;
+                   double& epsBest, size_t imagesDimensions[]) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -186,6 +186,7 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::LRTSAC(
     const LRTSACOptions& options)
     : sampler(Sampler(Estimator::kMinNumSamples)), options_(options) {
   options.Check();
+  std::cout << "THIS IS IT";
 
   _sigmaMin = 0.25;
   _B = 100;  // Should be adjusted to balance bailout test and processing time
@@ -223,7 +224,7 @@ void LRTSAC<Estimator, SupportMeasurer, Sampler>::initSigma(
 /// Computation of the log-likelihood function. Equation (10)
 template <typename Estimator, typename SupportMeasurer, typename Sampler>
 double LRTSAC<Estimator, SupportMeasurer, Sampler>::likelihood(
-    double eps, double sigma, int imagesDimensions[]) const {
+    double eps, double sigma, size_t imagesDimensions[]) const {
   double p = Estimator::pSigma(sigma, imagesDimensions), q = 1 - p;
   if (p < 1.0e-10 || q < 1.0e-10)
     throw std::domain_error(
@@ -242,7 +243,7 @@ double LRTSAC<Estimator, SupportMeasurer, Sampler>::likelihood(
 template <typename Estimator, typename SupportMeasurer, typename Sampler>
 double LRTSAC<Estimator, SupportMeasurer, Sampler>::bisectLikelihood(
     double sigma, double L, const size_t num_samples,
-    int imagesDimensions[]) const {
+    size_t imagesDimensions[]) const {
   double iMin = 0, iMax = 1;
   double LMin = likelihood(iMin, sigma, imagesDimensions);
   double LMax = likelihood(iMax, sigma, imagesDimensions);
@@ -270,7 +271,7 @@ double LRTSAC<Estimator, SupportMeasurer, Sampler>::bisectLikelihood(
 template <typename Estimator, typename SupportMeasurer, typename Sampler>
 void LRTSAC<Estimator, SupportMeasurer, Sampler>::computeEpsMin(
     std::vector<double>& Sigma, std::vector<double>& epsMin, double L,
-    const size_t num_samples, int imagesDimensions[]) const {
+    const size_t num_samples, size_t imagesDimensions[]) const {
   std::vector<double>::iterator it = Sigma.begin();
   for (int i = 0; it != Sigma.end(); ++it, ++i) {
     if (likelihood(1, *it, imagesDimensions) <= L) break;
@@ -328,7 +329,7 @@ bool LRTSAC<Estimator, SupportMeasurer, Sampler>::computeEps(
 template <typename Estimator, typename SupportMeasurer, typename Sampler>
 double LRTSAC<Estimator, SupportMeasurer, Sampler>::bestSigma(
     const std::vector<double>& Sigma, const std::vector<double>& eps, double& L,
-    double& epsBest, int imagesDimensions[]) const {
+    double& epsBest, size_t imagesDimensions[]) const {
   double sigma = 0;
   L = -1.0;
   for (size_t i = 0; i < Sigma.size(); i++) {
@@ -347,7 +348,7 @@ typename LRTSAC<Estimator, SupportMeasurer, Sampler>::Report
 LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::X_t>& X,
     const std::vector<typename Estimator::Y_t>& Y,
-    int imagesDimensions[]) {
+    size_t imagesDimensions[]) {
   CHECK_EQ(X.size(), Y.size());
 
   const size_t num_samples = X.size();
@@ -437,7 +438,7 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
 
         if (options_.confidenceIIT < 1 || options_.confidenceIIB < 1 ||
             options_.reduceSigma)
-          computeEpsMin(Sigma, epsMin, best_Likelihood, imagesDimensions);
+          computeEpsMin(Sigma, epsMin, best_Likelihood, num_samples, imagesDimensions);
         if (options_.confidenceIIT < 1 && !Sigma.empty())
           dyn_max_num_trials = std::min(
               dyn_max_num_trials,

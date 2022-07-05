@@ -59,6 +59,8 @@ class FundamentalMatrixSevenPointEstimator {
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 7;
 
+  static const int nDegreeOfFreedom = 7;
+
   // Estimate either 1 or 3 possible fundamental matrix solutions from a set of
   // corresponding points.
   //
@@ -84,10 +86,10 @@ class FundamentalMatrixSevenPointEstimator {
                         const std::vector<Y_t>& points2, const M_t& F,
                         std::vector<double>* residuals);
 
-  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& F);
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& F);
 
   static double pSigma(const double sigma,
-                       const int imagesDimensions[],
+                       const size_t imagesDimensions[],
                        const bool leftSide = true);
 };
 
@@ -104,6 +106,9 @@ class FundamentalMatrixEightPointEstimator {
 
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 8;
+
+  static const int nDegreeOfFreedom = 7;
+
 
   // Estimate fundamental matrix solutions from a set of corresponding points.
   //
@@ -129,10 +134,10 @@ class FundamentalMatrixEightPointEstimator {
                         const std::vector<Y_t>& points2, const M_t& F,
                         std::vector<double>* residuals);
 
-  static double Residuals(const X_t& point1, const Y_t& point2, const M_t& F);
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& F);
 
   static double pSigma(const double sigma,
-                       const int imagesDimensions[],
+                       const size_t imagesDimensions[],
                        const bool leftSide = true);
 };
 
