@@ -67,13 +67,11 @@ void EstimateAbsolutePoseKernel(const Camera& camera,
   }
 
   // Estimate pose for given focal length.
-  auto custom_options = options;
-  custom_options.sigmaMax =
-      scaled_camera.ImageToWorldThreshold(options.sigmaMax);
-  AbsolutePoseRANSAC ransac(custom_options);
-  size_t imagesDimensions[2] = {scaled_camera.Width(),
-                                scaled_camera.Height()};
-  *report = ransac.Estimate(points2D_N, points3D, imagesDimensions);
+  AbsolutePoseRANSAC ransac(options);
+  size_t imagesDimensions[2] = {scaled_camera.Width(), scaled_camera.Height()};
+  double scalingFactor = 1. / scaled_camera.ImageToWorldThreshold(1.);
+  *report =
+      ransac.Estimate(points2D_N, points3D, imagesDimensions, scalingFactor);
 }
 
 }  // namespace
@@ -128,7 +126,9 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
   for (size_t i = 0; i < focal_length_factors.size(); ++i) {
     futures[i].get();
     const auto report = reports[i];
-    if (report.success && report.support.num_inliers > *num_inliers) {
+    if (report.success &&
+        report.support.num_inliers >
+            *num_inliers) {  // TODO: BE CAREFUL DOES NOT WORK FOR NOW
       *num_inliers = report.support.num_inliers;
       proj_matrix = report.model;
       *inlier_mask = report.inlier_mask;

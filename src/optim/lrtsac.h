@@ -142,7 +142,7 @@ class LRTSAC {
   // @return               The report with the results of the estimation.
   Report Estimate(const std::vector<typename Estimator::X_t>& X,
                   const std::vector<typename Estimator::Y_t>& Y,
-                  size_t imagesDimensions[]);
+                  size_t imagesDimensions[], double scalingFactor);
 
   // Objects used in RANSAC procedure. Access useful to define custom behavior
   // through options or e.g. to compute residuals.
@@ -169,12 +169,12 @@ class LRTSAC {
                   const std::vector<typename Estimator::X_t>& X,
                   const std::vector<typename Estimator::Y_t>& Y,
                   const std::vector<double>& Sigma, std::vector<double>& eps,
-                  const int num_samples,
-                  const std::vector<double>& epsMin) const;
+                  const int num_samples, const std::vector<double>& epsMin,
+                  double scalingFactor) const;
 
   double bestSigma(const std::vector<double>& Sigma,
-                   const std::vector<double>& eps, double& L,
-                   double& epsBest, size_t imagesDimensions[]) const;
+                   const std::vector<double>& eps, double& L, double& epsBest,
+                   size_t imagesDimensions[]) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -186,7 +186,6 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::LRTSAC(
     const LRTSACOptions& options)
     : sampler(Sampler(Estimator::kMinNumSamples)), options_(options) {
   options.Check();
-  std::cout << "THIS IS IT";
 
   _sigmaMin = 0.25;
   _B = 100;  // Should be adjusted to balance bailout test and processing time
@@ -296,10 +295,11 @@ bool LRTSAC<Estimator, SupportMeasurer, Sampler>::computeEps(
     const std::vector<typename Estimator::X_t>& X,
     const std::vector<typename Estimator::Y_t>& Y,
     const std::vector<double>& Sigma, std::vector<double>& eps,
-    const int num_samples, const std::vector<double>& epsMin) const {
+    const int num_samples, const std::vector<double>& epsMin,
+    const double scalingFactor) const {
   const double increment = 1.0 / num_samples;
   for (int j = 0, bailCount = 0; j < num_samples; j++) {
-    double error = estimator.Residual(X[j], Y[j], model);
+    double error = estimator.Residual(X[j], Y[j], model) * scalingFactor;
 
     for (size_t i = 0; i < Sigma.size(); i++)
       if (error <= Sigma[i] * Sigma[i]) eps[i] += increment;
@@ -347,8 +347,8 @@ template <typename Estimator, typename SupportMeasurer, typename Sampler>
 typename LRTSAC<Estimator, SupportMeasurer, Sampler>::Report
 LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::X_t>& X,
-    const std::vector<typename Estimator::Y_t>& Y,
-    size_t imagesDimensions[]) {
+    const std::vector<typename Estimator::Y_t>& Y, size_t imagesDimensions[],
+    const double scalingFactor) {
   CHECK_EQ(X.size(), Y.size());
 
   const size_t num_samples = X.size();
@@ -423,8 +423,8 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     // Iterate through all estimated models.
     for (const auto& sample_model : sample_models) {
       std::vector<double> eps(Sigma.size(), 0);  // Inlier ratios
-      bool noBailout =
-          computeEps(sample_model, X, Y, Sigma, eps, num_samples, epsMin);
+      bool noBailout = computeEps(sample_model, X, Y, Sigma, eps, num_samples,
+                                  epsMin, scalingFactor);
       if (!noBailout) continue;
 
       double L, epsBest = 0;
@@ -438,7 +438,8 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
 
         if (options_.confidenceIIT < 1 || options_.confidenceIIB < 1 ||
             options_.reduceSigma)
-          computeEpsMin(Sigma, epsMin, best_Likelihood, num_samples, imagesDimensions);
+          computeEpsMin(Sigma, epsMin, best_Likelihood, num_samples,
+                        imagesDimensions);
         if (options_.confidenceIIT < 1 && !Sigma.empty())
           dyn_max_num_trials = std::min(
               dyn_max_num_trials,
@@ -472,7 +473,7 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
 
   report.inlier_mask.resize(num_samples);
   for (size_t i = 0; i < residuals.size(); ++i) {
-    if (residuals[i] <= best_Sigma) {
+    if (residuals[i] * scalingFactor <= best_Sigma) {
       report.inlier_mask[i] = true;
       report.support.num_inliers += 1;
       report.support.residual_sum += residuals[i];
