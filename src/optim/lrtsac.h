@@ -299,7 +299,7 @@ bool LRTSAC<Estimator, SupportMeasurer, Sampler>::computeEps(
     const double scalingFactor) const {
   const double increment = 1.0 / num_samples;
   for (int j = 0, bailCount = 0; j < num_samples; j++) {
-    double error = estimator.Residual(X[j], Y[j], model) * scalingFactor;
+    double error = estimator.Residual(X[j], Y[j], model) * scalingFactor * scalingFactor;
 
     for (size_t i = 0; i < Sigma.size(); i++)
       if (error <= Sigma[i] * Sigma[i]) eps[i] += increment;
@@ -373,7 +373,6 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
   } else
     _minL = 0;
 
-  typename SupportMeasurer::Support best_support;
   typename Estimator::M_t best_model;
 
   bool abort = false;
@@ -454,7 +453,6 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     }
   }
 
-  report.support = best_support;
   report.model = best_model;
 
   // No valid model was found.
@@ -473,7 +471,7 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
 
   report.inlier_mask.resize(num_samples);
   for (size_t i = 0; i < residuals.size(); ++i) {
-    if (residuals[i] * scalingFactor <= best_Sigma) {
+    if (residuals[i] * scalingFactor * scalingFactor <= best_Sigma * best_Sigma) {
       report.inlier_mask[i] = true;
       report.support.num_inliers += 1;
       report.support.residual_sum += residuals[i];
