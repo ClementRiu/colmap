@@ -156,9 +156,9 @@ void EssentialMatrixFivePointEstimator::Residuals(
   ComputeSquaredSampsonError(points1, points2, E, residuals);
 }
 
-double EssentialMatrixFivePointEstimator::Residuals(const X_t& point1,
-                                                    const Y_t& point2,
-                                                    const M_t& E) {
+double EssentialMatrixFivePointEstimator::Residual(const X_t& point1,
+                                                   const Y_t& point2,
+                                                   const M_t& E) {
   // Note that this code might not be as nice as Eigen expressions,
   // but it is significantly faster in various tests.
   std::vector<double> residuals;
@@ -168,9 +168,8 @@ double EssentialMatrixFivePointEstimator::Residuals(const X_t& point1,
   return residuals[0];
 }
 
-double EssentialMatrixFivePointEstimator::pSigma(const double sigma,
-                                                 const int imagesDimensions[],
-                                                 const bool leftSide) {
+double EssentialMatrixFivePointEstimator::pSigma(
+    const double sigma, const size_t imagesDimensions[], const bool leftSide) {
   const double _areaLeft = imagesDimensions[0] * imagesDimensions[1],
                _areaRight = imagesDimensions[2] * imagesDimensions[3];
   const double _diameterLeft = std::sqrt(std::pow(imagesDimensions[0], 2) +
@@ -242,9 +241,9 @@ void EssentialMatrixEightPointEstimator::Residuals(
   ComputeSquaredSampsonError(points1, points2, E, residuals);
 }
 
-double EssentialMatrixEightPointEstimator::Residuals(const X_t& point1,
-                                                     const Y_t& point2,
-                                                     const M_t& E) {
+double EssentialMatrixEightPointEstimator::Residual(const X_t& point1,
+                                                    const Y_t& point2,
+                                                    const M_t& E) {
   // Note that this code might not be as nice as Eigen expressions,
   // but it is significantly faster in various tests.
   std::vector<double> residuals;
@@ -254,9 +253,8 @@ double EssentialMatrixEightPointEstimator::Residuals(const X_t& point1,
   return residuals[0];
 }
 
-double EssentialMatrixEightPointEstimator::pSigma(const double sigma,
-                                                  const int imagesDimensions[],
-                                                  const bool leftSide) {
+double EssentialMatrixEightPointEstimator::pSigma(
+    const double sigma, const size_t imagesDimensions[], const bool leftSide) {
   const double _areaLeft = imagesDimensions[0] * imagesDimensions[1],
                _areaRight = imagesDimensions[2] * imagesDimensions[3];
   const double _diameterLeft = std::sqrt(std::pow(imagesDimensions[0], 2) +

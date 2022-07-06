@@ -148,9 +148,9 @@ void FundamentalMatrixSevenPointEstimator::Residuals(
   ComputeSquaredSampsonError(points1, points2, F, residuals);
 }
 
-double FundamentalMatrixSevenPointEstimator::Residuals(const X_t& point1,
-                                                       const Y_t& point2,
-                                                       const M_t& F) {
+double FundamentalMatrixSevenPointEstimator::Residual(const X_t& point1,
+                                                      const Y_t& point2,
+                                                      const M_t& F) {
   // Note that this code might not be as nice as Eigen expressions,
   // but it is significantly faster in various tests.
   std::vector<double> residuals;
@@ -161,7 +161,7 @@ double FundamentalMatrixSevenPointEstimator::Residuals(const X_t& point1,
 }
 
 double FundamentalMatrixSevenPointEstimator::pSigma(
-    const double sigma, const int imagesDimensions[], const bool leftSide) {
+    const double sigma, const size_t imagesDimensions[], const bool leftSide) {
   const double _areaLeft = imagesDimensions[0] * imagesDimensions[1],
                _areaRight = imagesDimensions[2] * imagesDimensions[3];
   const double _diameterLeft = std::sqrt(std::pow(imagesDimensions[0], 2) +
@@ -229,9 +229,9 @@ void FundamentalMatrixEightPointEstimator::Residuals(
   ComputeSquaredSampsonError(points1, points2, E, residuals);
 }
 
-double FundamentalMatrixEightPointEstimator::Residuals(const X_t& point1,
-                                                       const Y_t& point2,
-                                                       const M_t& F) {
+double FundamentalMatrixEightPointEstimator::Residual(const X_t& point1,
+                                                      const Y_t& point2,
+                                                      const M_t& F) {
   // Note that this code might not be as nice as Eigen expressions,
   // but it is significantly faster in various tests.
   std::vector<double> residuals;
@@ -242,7 +242,7 @@ double FundamentalMatrixEightPointEstimator::Residuals(const X_t& point1,
 }
 
 double FundamentalMatrixEightPointEstimator::pSigma(
-    const double sigma, const int imagesDimensions[], const bool leftSide) {
+    const double sigma, const size_t imagesDimensions[], const bool leftSide) {
   const double _areaLeft = imagesDimensions[0] * imagesDimensions[1],
                _areaRight = imagesDimensions[2] * imagesDimensions[3];
   const double _diameterLeft = std::sqrt(std::pow(imagesDimensions[0], 2) +
