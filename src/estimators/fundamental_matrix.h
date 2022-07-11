@@ -61,6 +61,10 @@ class FundamentalMatrixSevenPointEstimator {
 
   static const int nDegreeOfFreedom = 7;
 
+  static const int NbModels = 3;
+
+  static const bool DistToPoint = false;
+
   // Estimate either 1 or 3 possible fundamental matrix solutions from a set of
   // corresponding points.
   //

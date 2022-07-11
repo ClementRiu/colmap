@@ -55,6 +55,10 @@ class HomographyMatrixEstimator {
 
   static const int nDegreeOfFreedom = 8;
 
+  static const int NbModels = 1;
+
+  static const bool DistToPoint = true;
+
   // Estimate the projective transformation (homography).
   //
   // The number of corresponding points must be at least 4.

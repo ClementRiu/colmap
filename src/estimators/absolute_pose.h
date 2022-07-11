@@ -63,6 +63,10 @@ class P3PEstimator {
 
   static const int nDegreeOfFreedom = 6;
 
+  static const int NbModels = 4;
+
+  static const bool DistToPoint = true;
+
   // Estimate the most probable solution of the P3P problem from a set of
   // three 2D-3D point correspondences.
   //
@@ -113,6 +117,12 @@ class EPNPEstimator {
 
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 4;
+
+  static const int nDegreeOfFreedom = 6;
+
+  static const int NbModels = 4;
+
+  static const bool DistToPoint = true;
 
   // Estimate the most probable solution of the P3P problem from a set of
   // three 2D-3D point correspondences.

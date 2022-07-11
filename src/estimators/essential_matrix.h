@@ -61,6 +61,10 @@ class EssentialMatrixFivePointEstimator {
 
   static const int nDegreeOfFreedom = 5;
 
+  static const int NbModels = 10;
+
+  static const bool DistToPoint = false;
+
   // Estimate up to 10 possible essential matrix solutions from a set of
   // corresponding points.
   //
