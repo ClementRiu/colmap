@@ -45,13 +45,20 @@
 namespace colmap {
 namespace {
 
-typedef LRTSAC<P3PEstimator> AbsolutePoseRANSAC;
+//typedef LRTSAC<P3PEstimator> AbsolutePoseRANSAC;
+typedef ACRANSAC<P3PEstimator> AbsolutePoseRANSAC;
 
+//void EstimateAbsolutePoseKernel(const Camera& camera,
+//                                const double focal_length_factor,
+//                                const std::vector<Eigen::Vector2d>& points2D,
+//                                const std::vector<Eigen::Vector3d>& points3D,
+//                                const LRTSACOptions& options,
+//                                AbsolutePoseRANSAC::Report* report) {
 void EstimateAbsolutePoseKernel(const Camera& camera,
                                 const double focal_length_factor,
                                 const std::vector<Eigen::Vector2d>& points2D,
                                 const std::vector<Eigen::Vector3d>& points3D,
-                                const LRTSACOptions& options,
+                                const ACRANSACOptions& options,
                                 AbsolutePoseRANSAC::Report* report) {
   // Scale the focal length by the given factor.
   Camera scaled_camera = camera;
