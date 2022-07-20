@@ -167,6 +167,7 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
       options.num_threads, static_cast<int>(focal_length_factors.size())));
 
 #if !defined(USE_LRTSAC) && !defined(USE_ACRANSAC)
+  std::cout << "USING LORANSAC WITH THRESHOLD: " << options.ransac_options.max_error << std::endl;
   for (size_t i = 0; i < focal_length_factors.size(); ++i) {
     futures[i] = thread_pool.AddTask(
         EstimateAbsolutePoseKernel, *camera, focal_length_factors[i], points2D,
@@ -174,13 +175,15 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
   }
 #endif
 #ifdef USE_LRTSAC
+  std::cout << "USING LRTSAC WITH THRESHOLD: " << options.ransac_options_LRT.sigmaMax << std::endl;
   for (size_t i = 0; i < focal_length_factors.size(); ++i) {
     futures[i] = thread_pool.AddTask(
         EstimateAbsolutePoseKernel_LRT, *camera, focal_length_factors[i], points2D,
         points3D, options.ransac_options_LRT, &reports[i]);
   }
 #endif
-#ifdef USE_AC_RANSAC
+#ifdef USE_ACRANSAC
+  std::cout << "USING ACRANSAC WITH THRESHOLD: " << options.ransac_options_AC.sigmaMax << std::endl;
   for (size_t i = 0; i < focal_length_factors.size(); ++i) {
     futures[i] = thread_pool.AddTask(
         EstimateAbsolutePoseKernel_AC, *camera, focal_length_factors[i], points2D,

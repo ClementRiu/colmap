@@ -57,8 +57,7 @@ COLMAP_ADD_EXECUTABLE(colmap_LRTSAC
         mvs.cc
         sfm.cc
         vocab_tree.cc)
-target_compile_definitions(colmap_LRTSAC PUBLIC USE_LRTSAC)
-set_target_properties(colmap_LRTSAC PROPERTIES OUTPUT_NAME colmap_LRT)
+set_target_properties(colmap_LRTSAC PROPERTIES OUTPUT_NAME colmap_LRT COMPILE_FLAGS -DUSE_LRTSAC)
 
 COLMAP_ADD_EXECUTABLE(colmap_ACRANSAC
         colmap.cc
@@ -70,8 +69,7 @@ COLMAP_ADD_EXECUTABLE(colmap_ACRANSAC
         mvs.cc
         sfm.cc
         vocab_tree.cc)
-target_compile_definitions(colmap_ACRANSAC PUBLIC USE_ACRANSAC)
-set_target_properties(colmap_ACRANSAC PROPERTIES OUTPUT_NAME colmap_AC)
+set_target_properties(colmap_ACRANSAC PROPERTIES OUTPUT_NAME colmap_AC COMPILE_FLAGS -DUSE_ACRANSAC)
 
 COLMAP_ADD_SOURCES(
     feature.h feature.cc

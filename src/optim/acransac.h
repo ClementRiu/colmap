@@ -198,7 +198,6 @@ ACRANSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::Y_t>& Y, size_t imagesDimensions[],
     const double scalingFactor) {
   CHECK_EQ(X.size(), Y.size());
-  std::cout << "USING ACRANSAC WITH THRESHOLD: " << options_.sigmaMax << std::endl;
 
   _alpha0Right = Estimator::pSigma(1, imagesDimensions, false);
   logalpha0_[1] = log10(_alpha0Right);

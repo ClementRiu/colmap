@@ -84,7 +84,7 @@ struct AbsolutePoseEstimationOptions {
 #ifdef USE_LRTSAC
     ransac_options_LRT.Check();
 #endif
-#ifdef USE_AC_RANSAC
+#ifdef USE_ACRANSAC
     ransac_options_AC.Check();
 #endif
   }
