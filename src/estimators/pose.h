@@ -40,7 +40,8 @@
 
 #include "base/camera.h"
 #include "base/camera_models.h"
-//#include "optim/lrtsac.h"
+#include "optim/loransac.h"
+#include "optim/lrtsac.h"
 #include "optim/acransac.h"
 #include "util/alignment.h"
 #include "util/logging.h"
@@ -68,15 +69,24 @@ struct AbsolutePoseEstimationOptions {
   int num_threads = ThreadPool::kMaxNumThreads;
 
   // Options used for P3P RANSAC.
-//  LRTSACOptions ransac_options;
-  ACRANSACOptions ransac_options;
+  RANSACOptions ransac_options;
+  LRTSACOptions ransac_options_LRT;
+  ACRANSACOptions ransac_options_AC;
 
   void Check() const {
     CHECK_GT(num_focal_length_samples, 0);
     CHECK_GT(min_focal_length_ratio, 0);
     CHECK_GT(max_focal_length_ratio, 0);
     CHECK_LT(min_focal_length_ratio, max_focal_length_ratio);
+#if !defined(USE_LRTSAC) && !defined(USE_ACRANSAC)
     ransac_options.Check();
+#endif
+#ifdef USE_LRTSAC
+    ransac_options_LRT.Check();
+#endif
+#ifdef USE_AC_RANSAC
+    ransac_options_AC.Check();
+#endif
   }
 };
 
@@ -145,14 +155,11 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
 // @param tvec                 Estimated translation component.
 //
 // @return                     Number of RANSAC inliers.
-//size_t EstimateRelativePose(const LRTSACOptions& ransac_options,
-//                            const std::vector<Eigen::Vector2d>& points1,
-//                            const std::vector<Eigen::Vector2d>& points2,
-//                            Eigen::Vector4d* qvec, Eigen::Vector3d* tvec);
-size_t EstimateRelativePose(const ACRANSACOptions& ransac_options,
+size_t EstimateRelativePose(const RANSACOptions& ransac_options,
                             const std::vector<Eigen::Vector2d>& points1,
                             const std::vector<Eigen::Vector2d>& points2,
                             Eigen::Vector4d* qvec, Eigen::Vector3d* tvec);
+
 // Refine absolute pose (optionally focal length) from 2D-3D correspondences.
 //
 // @param options              Refinement options.

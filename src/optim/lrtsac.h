@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <vector>
 
-//#include "optim/ransac.h"
+#include "optim/ransac.h"
 #include "optim/random_sampler.h"
 #include "optim/support_measurement.h"
 #include "util/alignment.h"
@@ -98,24 +98,7 @@ template <typename Estimator, typename SupportMeasurer = InlierSupportMeasurer,
           typename Sampler = RandomSampler>
 class LRTSAC {
  public:
-  struct Report {
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-    // Whether the estimation was successful.
-    bool success = false;
-
-    // The number of RANSAC trials / iterations.
-    size_t num_trials = 0;
-
-    // The support of the estimated model.
-    typename SupportMeasurer::Support support;
-
-    // Boolean mask which is true if a sample is an inlier.
-    std::vector<char> inlier_mask;
-
-    // The estimated model.
-    typename Estimator::M_t model;
-  };
+  typedef typename RANSAC<Estimator, SupportMeasurer, Sampler>::Report Report;
 
   explicit LRTSAC(const LRTSACOptions& options);
 

@@ -38,6 +38,7 @@
 #include <vector>
 
 #include "optim/random_sampler.h"
+#include "optim/ransac.h"
 #include "optim/support_measurement.h"
 #include "util/alignment.h"
 #include "util/logging.h"
@@ -69,24 +70,7 @@ template <typename Estimator, typename SupportMeasurer = InlierSupportMeasurer,
           typename Sampler = RandomSampler>
 class ACRANSAC {
  public:
-  struct Report {
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-    // Whether the estimation was successful.
-    bool success = false;
-
-    // The number of RANSAC trials / iterations.
-    size_t num_trials = 0;
-
-    // The support of the estimated model.
-    typename SupportMeasurer::Support support;
-
-    // Boolean mask which is true if a sample is an inlier.
-    std::vector<char> inlier_mask;
-
-    // The estimated model.
-    typename Estimator::M_t model;
-  };
+  typedef typename RANSAC<Estimator, SupportMeasurer, Sampler>::Report Report;
 
   explicit ACRANSAC(const ACRANSACOptions& options);
 
@@ -181,8 +165,7 @@ ACRANSAC<Estimator, SupportMeasurer, Sampler>::bestNFA(
 
 /// logarithm (base 10) of binomial coefficient
 template <typename Estimator, typename SupportMeasurer, typename Sampler>
-float ACRANSAC<Estimator, SupportMeasurer, Sampler>::logcombi(int k,
-                                                                     int n) {
+float ACRANSAC<Estimator, SupportMeasurer, Sampler>::logcombi(int k, int n) {
   if (k >= n || k <= 0) return (0.0);
   if (n - k < k) k = n - k;
   double r = 0.0;
@@ -215,6 +198,7 @@ ACRANSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::Y_t>& Y, size_t imagesDimensions[],
     const double scalingFactor) {
   CHECK_EQ(X.size(), Y.size());
+  std::cout << "USING ACRANSAC WITH THRESHOLD: " << options_.sigmaMax << std::endl;
 
   _alpha0Right = Estimator::pSigma(1, imagesDimensions, false);
   logalpha0_[1] = log10(_alpha0Right);

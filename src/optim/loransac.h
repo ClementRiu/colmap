@@ -93,6 +93,7 @@ LORANSAC<Estimator, LocalEstimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::X_t>& X,
     const std::vector<typename Estimator::Y_t>& Y) {
   CHECK_EQ(X.size(), Y.size());
+  std::cout << "USING LORANSAC WITH THRESHOLD: " << options_.max_error << std::endl;
 
   const size_t num_samples = X.size();
 

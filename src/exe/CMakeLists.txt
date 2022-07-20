@@ -47,6 +47,32 @@ COLMAP_ADD_EXECUTABLE(colmap_exe
     vocab_tree.cc)
 set_target_properties(colmap_exe PROPERTIES OUTPUT_NAME colmap)
 
+COLMAP_ADD_EXECUTABLE(colmap_LRTSAC
+        colmap.cc
+        database.cc
+        feature.cc
+        gui.cc
+        image.cc
+        model.cc
+        mvs.cc
+        sfm.cc
+        vocab_tree.cc)
+target_compile_definitions(colmap_LRTSAC PUBLIC USE_LRTSAC)
+set_target_properties(colmap_LRTSAC PROPERTIES OUTPUT_NAME colmap_LRT)
+
+COLMAP_ADD_EXECUTABLE(colmap_ACRANSAC
+        colmap.cc
+        database.cc
+        feature.cc
+        gui.cc
+        image.cc
+        model.cc
+        mvs.cc
+        sfm.cc
+        vocab_tree.cc)
+target_compile_definitions(colmap_ACRANSAC PUBLIC USE_ACRANSAC)
+set_target_properties(colmap_ACRANSAC PROPERTIES OUTPUT_NAME colmap_AC)
+
 COLMAP_ADD_SOURCES(
     feature.h feature.cc
     sfm.h sfm.cc
