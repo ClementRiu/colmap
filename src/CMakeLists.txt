@@ -63,6 +63,8 @@ if (GUI_ENABLED)
 endif()
 
 COLMAP_ADD_STATIC_LIBRARY(colmap ${COLMAP_SOURCES})
+COLMAP_ADD_STATIC_LIBRARY_LRTSAC(colmapLRT ${COLMAP_SOURCES})
+COLMAP_ADD_STATIC_LIBRARY_ACRANSAC(colmapAC ${COLMAP_SOURCES})
 
 if(CUDA_ENABLED)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --use_fast_math")
@@ -87,4 +89,8 @@ if(CUDA_ENABLED)
 else()
     target_link_libraries(colmap
         ${COLMAP_INTERNAL_LIBRARIES} ${COLMAP_EXTERNAL_LIBRARIES})
+    target_link_libraries(colmapLRT
+            ${COLMAP_INTERNAL_LIBRARIES} ${COLMAP_EXTERNAL_LIBRARIES})
+    target_link_libraries(colmapAC
+            ${COLMAP_INTERNAL_LIBRARIES} ${COLMAP_EXTERNAL_LIBRARIES})
 endif()

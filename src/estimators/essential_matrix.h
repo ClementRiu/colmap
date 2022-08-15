@@ -59,6 +59,12 @@ class EssentialMatrixFivePointEstimator {
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 5;
 
+  static const int nDegreeOfFreedom = 5;
+
+  static const int NbModels = 10;
+
+  static const bool DistToPoint = false;
+
   // Estimate up to 10 possible essential matrix solutions from a set of
   // corresponding points.
   //
@@ -83,6 +89,12 @@ class EssentialMatrixFivePointEstimator {
   static void Residuals(const std::vector<X_t>& points1,
                         const std::vector<Y_t>& points2, const M_t& E,
                         std::vector<double>* residuals);
+
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& E);
+
+  static double pSigma(const double sigma,
+                       const size_t imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 // Essential matrix estimator from corresponding normalized point pairs.
@@ -98,6 +110,9 @@ class EssentialMatrixEightPointEstimator {
 
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 8;
+
+  static const int nDegreeOfFreedom = 5;
+
 
   // Estimate essential matrix solutions from  set of corresponding points.
   //
@@ -120,6 +135,12 @@ class EssentialMatrixEightPointEstimator {
   static void Residuals(const std::vector<X_t>& points1,
                         const std::vector<Y_t>& points2, const M_t& E,
                         std::vector<double>* residuals);
+
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& E);
+
+  static double pSigma(const double sigma,
+                       const size_t imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 }  // namespace colmap

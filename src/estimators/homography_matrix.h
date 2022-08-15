@@ -53,6 +53,12 @@ class HomographyMatrixEstimator {
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 4;
 
+  static const int nDegreeOfFreedom = 8;
+
+  static const int NbModels = 1;
+
+  static const bool DistToPoint = true;
+
   // Estimate the projective transformation (homography).
   //
   // The number of corresponding points must be at least 4.
@@ -76,6 +82,11 @@ class HomographyMatrixEstimator {
   static void Residuals(const std::vector<X_t>& points1,
                         const std::vector<Y_t>& points2, const M_t& H,
                         std::vector<double>* residuals);
+
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& H);
+
+  static double pSigma(const double sigma, const size_t imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 }  // namespace colmap
