@@ -500,6 +500,9 @@ void IncrementalMapperController::Reconstruct(
 
     bool reg_next_success = true;
     bool prev_reg_next_success = true;
+
+    double ransacTimer = 0.0;
+
     while (reg_next_success) {
       BlockIfPaused();
       if (IsStopped()) {
@@ -528,7 +531,7 @@ void IncrementalMapperController::Reconstruct(
                   << std::endl;
 
         reg_next_success =
-            mapper.RegisterNextImage(options_->Mapper(), next_image_id);
+            mapper.RegisterNextImage(options_->Mapper(), next_image_id, ransacTimer);
 
         if (reg_next_success) {
           TriangulateImage(*options_, next_image, &mapper);
@@ -594,6 +597,8 @@ void IncrementalMapperController::Reconstruct(
         prev_reg_next_success = reg_next_success;
       }
     }
+
+    std::cout << "TIME IN RANSAC: " << ransacTimer << std::endl;
 
     if (IsStopped()) {
       const bool kDiscardReconstruction = false;

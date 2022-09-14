@@ -172,6 +172,7 @@ class IncrementalMapper {
 
   // Attempt to register image to the existing model. This requires that
   // a previous call to `RegisterInitialImagePair` was successful.
+  bool RegisterNextImage(const Options& options, const image_t image_id, double &ransacTimer);
   bool RegisterNextImage(const Options& options, const image_t image_id);
 
   // Triangulate observations of image.

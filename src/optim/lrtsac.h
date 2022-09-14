@@ -332,6 +332,8 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::X_t>& X,
     const std::vector<typename Estimator::Y_t>& Y, size_t imagesDimensions[],
     const double scalingFactor) {
+  Timer timerLOR;
+  timerLOR.Start();
   CHECK_EQ(X.size(), Y.size());
 
   const size_t num_samples = X.size();
@@ -460,6 +462,9 @@ LRTSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
       report.support.residual_sum += residuals[i];
     }
   }
+
+  std::cout << "LRT-RANSAC final threshold: " << best_Sigma << std::endl;
+  report.ransacTimer = timerLOR.ElapsedSeconds();
 
   return report;
 }

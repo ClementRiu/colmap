@@ -343,6 +343,13 @@ bool IncrementalMapper::RegisterInitialImagePair(const Options& options,
 
 bool IncrementalMapper::RegisterNextImage(const Options& options,
                                           const image_t image_id) {
+  double ransacTimer;
+  return RegisterNextImage(options, image_id, ransacTimer);
+}
+
+bool IncrementalMapper::RegisterNextImage(const Options& options,
+                                          const image_t image_id,
+                                          double &ransacTimer) {
   CHECK_NOTNULL(reconstruction_);
   CHECK_GE(reconstruction_->NumRegImages(), 2);
 
@@ -508,7 +515,7 @@ bool IncrementalMapper::RegisterNextImage(const Options& options,
 
   if (!EstimateAbsolutePose(abs_pose_options, tri_points2D, tri_points3D,
                             &image.Qvec(), &image.Tvec(), &camera, &num_inliers,
-                            &inlier_mask)) {
+                            &inlier_mask, ransacTimer)) {
     return false;
   }
 

@@ -197,7 +197,10 @@ ACRANSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::X_t>& X,
     const std::vector<typename Estimator::Y_t>& Y, size_t imagesDimensions[],
     const double scalingFactor) {
+  Timer timerLOR;
+  timerLOR.Start();
   CHECK_EQ(X.size(), Y.size());
+
 
   _alpha0Right = Estimator::pSigma(1, imagesDimensions, false);
   logalpha0_[1] = log10(_alpha0Right);
@@ -352,6 +355,8 @@ ACRANSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
       report.support.residual_sum += residuals[i];
     }
   }
+  std::cout << "AC-RANSAC final threshold: " << sqrt(errorMax) << std::endl;
+  report.ransacTimer = timerLOR.ElapsedSeconds();
 
   return report;
 }

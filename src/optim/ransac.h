@@ -96,6 +96,8 @@ class RANSAC {
 
     // The estimated model.
     typename Estimator::M_t model;
+
+    double ransacTimer;
   };
 
   explicit RANSAC(const RANSACOptions& options);

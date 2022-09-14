@@ -136,7 +136,8 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
                           const std::vector<Eigen::Vector3d>& points3D,
                           Eigen::Vector4d* qvec, Eigen::Vector3d* tvec,
                           Camera* camera, size_t* num_inliers,
-                          std::vector<char>* inlier_mask) {
+                          std::vector<char>* inlier_mask,
+                          double &ransacTimer) {
   options.Check();
 
   std::vector<double> focal_length_factors;
@@ -207,6 +208,7 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
       proj_matrix = report.model;
       *inlier_mask = report.inlier_mask;
       focal_length_factor = focal_length_factors[i];
+      ransacTimer += report.ransacTimer;
     }
   }
 
