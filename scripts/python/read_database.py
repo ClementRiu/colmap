@@ -153,13 +153,12 @@ def example_usage():
     # print(matches)
 
     matches = {}
-    for pair_id, data in db.execute("SELECT pair_id, data FROM two_view_geometries"):
+    for elems in db.execute("SELECT pair_id, rows, cols, data, config, F, E, H, qvec, tvec FROM two_view_geometries"):
         # if data is not None:
             # matches[pair_id_to_image_ids(pair_id)] = blob_to_array(data, np.uint32, (-1, 2))
             # print(blob_to_array(data, np.uint32, (-1, 2)))
         # else:
-        print(pair_id_to_image_ids(pair_id))
-        print(data)
+        print(elems)
 
     # Clean up.
 

@@ -141,8 +141,8 @@ def blob_to_array(blob, dtype, shape=(-1,)):
 class COLMAPDatabase(sqlite3.Connection):
 
     @staticmethod
-    def connect(database_path):
-        return sqlite3.connect(database_path, factory=COLMAPDatabase)
+    def connect(database_path, read_only = False):
+        return sqlite3.connect(database_path, factory=COLMAPDatabase, uri=read_only)
 
 
     def __init__(self, *args, **kwargs):
