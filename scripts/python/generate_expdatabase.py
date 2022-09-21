@@ -206,10 +206,13 @@ def main(args):
             (camera_id, model, width, height, params, prior_focal_length))
 
     for image_id, rows, cols, data in db_to_read.execute("SELECT image_id, rows, cols, data FROM descriptors"):
-        valid_keypoints_for_image = validated_keypoints[image_id]
         db.execute(
             "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
-            (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float32, (-1, 2))[valid_keypoints_for_image, :])))
+            (image_id, rows, cols, data))
+        # valid_keypoints_for_image = validated_keypoints[image_id]
+        # db.execute(
+        #     "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
+        #     (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float32, (-1, 2))[valid_keypoints_for_image, :])))
 
     for image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz in db_to_read.execute("SELECT image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz FROM images"):
         db.execute(
@@ -222,22 +225,30 @@ def main(args):
             (pair_id, rows, cols, data, config, F, E, H, qvec, tvec))
 
     for image_id, rows, cols, data in db_to_read.execute("SELECT image_id, rows, cols, data FROM keypoints"):
-        valid_keypoints_for_image = validated_keypoints[image_id]
         db.execute(
             "INSERT INTO keypoints VALUES (?, ?, ?, ?)",
-            (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float32, (-1, 2))[valid_keypoints_for_image, :])))
+            (image_id, rows, cols, data))
+        # valid_keypoints_for_image = validated_keypoints[image_id]
+        # db.execute(
+        #     "INSERT INTO keypoints VALUES (?, ?, ?, ?)",
+        #     (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float32, (-1, 2))[valid_keypoints_for_image, :])))
 
     for pair_id, rows, cols, data in db_to_read.execute("SELECT pair_id, rows, cols, data FROM matches"):
-        if data is not None:
-            valid_matches_for_image_pair = validated_matches[pair_id]
-            matches_to_keep = np.array([keypoint_pair for keypoint_pair in blob_to_array(data, np.float32, (-1, 2)).tolist() if keypoint_pair in valid_matches_for_image_pair])
-            db.execute(
-                "INSERT INTO matches VALUES (?, ?, ?, ?)",
-                (pair_id, len(matches_to_keep), cols, array_to_blob(matches_to_keep)))
-        else:
-            db.execute(
-                "INSERT INTO matches VALUES (?, ?, ?, ?)",
-                (pair_id, rows, cols, data))
+        # valid_matches_for_image_pair = validated_matches[pair_id]
+        # if data is not None and len(valid_matches_for_image_pair) > 0:
+        #     # matches_to_keep = np.array([keypoint_pair for keypoint_pair in blob_to_array(data, np.float32, (-1, 2)).tolist() if keypoint_pair in valid_matches_for_image_pair])
+        #     # print(len(valid_matches_for_image_pair))
+        #     # print(len(valid_matches_for_image_pair[0]))
+        #     # print(cols)
+        #     # print(rows)
+        #     # print("NEW")
+        db.execute(
+            "INSERT INTO matches VALUES (?, ?, ?, ?)",
+            (pair_id, rows, cols, data))
+        # else:
+        #     db.execute(
+        #         "INSERT INTO matches VALUES (?, ?, ?, ?)",
+        #         (pair_id, 0, cols, None))
     # # for camera_id, camera_info in sorted(cameras.items()):
     # #     id = camera_info.id
     # #     model = CAMERA_MODEL_NAMES[camera_info.model].model_id
