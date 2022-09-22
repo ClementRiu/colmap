@@ -186,29 +186,28 @@ def main(args):
     for point3d_id, point3d_info in sorted(points3D.items()):
         images_ids = point3d_info.image_ids
         keypoints_ids = point3d_info.point2D_idxs
-        for image1_id, keypoint1_id in zip(images_ids, keypoints_ids):
-            validated_keypoints[image1_id].append(keypoint1_id)
+        for image_id, keypoint_id in zip(images_ids, keypoints_ids):
+            validated_keypoints[image_id].append(keypoint_id)
 
     newkeypoints_index = collections.defaultdict(dict)
     for image_id, valid_keypoints_for_image in validated_keypoints.items():
         for index, keypoint in enumerate(sorted(valid_keypoints_for_image)):
             # newkeypoints_index[image_id][keypoint] = index
-            newkeypoints_index[image_id][keypoint] = keypoint
+            newkeypoints_index[image_id][keypoint] = index
 
     validated_matches = collections.defaultdict(list)
     for point3d_id, point3d_info in sorted(points3D.items()):
         images_ids = point3d_info.image_ids
         keypoints_ids = point3d_info.point2D_idxs
         for (image1_id, image2_id), (keypoint1_id, keypoint2_id) in zip(itertools.combinations(images_ids, 2), itertools.combinations(keypoints_ids, 2)):
+            pair_id = image_ids_to_pair_id(image1_id, image2_id)
             value = [newkeypoints_index[image1_id][keypoint1_id],
             newkeypoints_index[image2_id][keypoint2_id]]
             if image1_id > image2_id:
-                pair_id = image_ids_to_pair_id(image1_id, image2_id)
-            elif image1_id < image2_id:
-                pair_id = image_ids_to_pair_id(image2_id, image1_id)
                 value = [value[1], value[0]]
-            else:
+            elif image1_id == image2_id:
                 continue
+
             validated_matches[pair_id].append(value)
 
     for camera_id, model, width, height, params, prior_focal_length in db_to_read.execute("SELECT camera_id, model, width, height, params, prior_focal_length FROM cameras"):
@@ -218,12 +217,12 @@ def main(args):
 
     for image_id, rows, cols, data in db_to_read.execute("SELECT image_id, rows, cols, data FROM descriptors"):
         valid_keypoints_for_image = validated_keypoints[image_id]
-        # db.execute(
-        #     "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
-        #     (image_id, rows, cols, data))
         db.execute(
             "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
-            (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float64, (-1, 2))[valid_keypoints_for_image, :])))
+            (image_id, rows, cols, data))
+        # db.execute(
+        #     "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
+        #     (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float64, (-1, 2))[valid_keypoints_for_image, :])))
 
 
     for image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz in db_to_read.execute("SELECT image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz FROM images"):
@@ -232,29 +231,43 @@ def main(args):
             (image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz))
 
     for pair_id, rows, cols, data, config, F, E, H, qvec, tvec in db_to_read.execute("SELECT pair_id, rows, cols, data, config, F, E, H, qvec, tvec FROM two_view_geometries"):
-        db.execute(
-            "INSERT INTO two_view_geometries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (pair_id, rows, cols, data, config, F, E, H, qvec, tvec))
+        # if len(validated_matches[pair_id]) > 0:
+        if data is not None:
+            data = np.frombuffer(data, dtype=np.int32).reshape(rows, cols).tolist()
+            # data = array_to_blob(valid_matches_for_image_pair)
+            db.execute(
+                "INSERT INTO two_view_geometries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (pair_id, rows, cols, array_to_blob(data), config, F, E, H, qvec, tvec))
+        else:
+            db.execute(
+                "INSERT INTO two_view_geometries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (pair_id, 0, cols, None, 0, None, None, None, None, None))
 
     for image_id, rows, cols, data in db_to_read.execute("SELECT image_id, rows, cols, data FROM keypoints"):
         valid_keypoints_for_image = validated_keypoints[image_id]
-        # db.execute(
-        #     "INSERT INTO keypoints VALUES (?, ?, ?, ?)",
-        #     (image_id, rows, cols, data))
         db.execute(
             "INSERT INTO keypoints VALUES (?, ?, ?, ?)",
-            (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float64, (-1, 2))[valid_keypoints_for_image, :])))
+            (image_id, rows, cols, data))
+        # db.execute(
+        #     "INSERT INTO keypoints VALUES (?, ?, ?, ?)",
+        #     (image_id, len(valid_keypoints_for_image), cols, array_to_blob(blob_to_array(data, np.float64, (-1, 2))[valid_keypoints_for_image, :])))
 
     for pair_id, rows, cols, data in db_to_read.execute("SELECT pair_id, rows, cols, data FROM matches"):
-        if data is not None:
-            valid_matches_for_image_pair = validated_matches[pair_id]
-            db.execute(
-                "INSERT INTO matches VALUES (?, ?, ?, ?)",
-                (pair_id, len(valid_matches_for_image_pair), cols, array_to_blob(np.array(valid_matches_for_image_pair))))
-        else:
-            db.execute(
-                "INSERT INTO matches VALUES (?, ?, ?, ?)",
-                (pair_id, rows, cols, data))
+        # if data is not None and len(validated_matches[pair_id]) > 0:
+        #     valid_matches_for_image_pair = np.array(validated_matches[pair_id])
+        #     db.execute(
+        #         "INSERT INTO matches VALUES (?, ?, ?, ?)",
+        #         (pair_id, len(valid_matches_for_image_pair), cols, array_to_blob(valid_matches_for_image_pair)))
+        # # else:
+        # # if data is not None:
+        # #     data = array_to_blob(np.frombuffer(data, dtype=np.int32).reshape(rows, cols)[:min(30, rows), :])
+        # #     db.execute(
+        # #         "INSERT INTO matches VALUES (?, ?, ?, ?)",
+        # #         (pair_id, min(30, rows), cols, data))
+        # else:
+        db.execute(
+            "INSERT INTO matches VALUES (?, ?, ?, ?)",
+            (pair_id, rows, cols, data))
     # # for camera_id, camera_info in sorted(cameras.items()):
     # #     id = camera_info.id
     # #     model = CAMERA_MODEL_NAMES[camera_info.model].model_id
