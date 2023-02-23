@@ -343,6 +343,13 @@ bool IncrementalMapper::RegisterInitialImagePair(const Options& options,
 
 bool IncrementalMapper::RegisterNextImage(const Options& options,
                                           const image_t image_id) {
+  double ransacTimer;
+  return RegisterNextImage(options, image_id, ransacTimer);
+}
+
+bool IncrementalMapper::RegisterNextImage(const Options& options,
+                                          const image_t image_id,
+                                          double &ransacTimer) {
   CHECK_NOTNULL(reconstruction_);
   CHECK_GE(reconstruction_->NumRegImages(), 2);
 
@@ -440,6 +447,7 @@ bool IncrementalMapper::RegisterNextImage(const Options& options,
   abs_pose_options.num_focal_length_samples = 30;
   abs_pose_options.min_focal_length_ratio = options.min_focal_length_ratio;
   abs_pose_options.max_focal_length_ratio = options.max_focal_length_ratio;
+
   abs_pose_options.ransac_options.max_error = options.abs_pose_max_error;
   abs_pose_options.ransac_options.min_inlier_ratio =
       options.abs_pose_min_inlier_ratio;
@@ -448,6 +456,23 @@ bool IncrementalMapper::RegisterNextImage(const Options& options,
   abs_pose_options.ransac_options.min_num_trials = 100;
   abs_pose_options.ransac_options.max_num_trials = 10000;
   abs_pose_options.ransac_options.confidence = 0.99999;
+
+  abs_pose_options.ransac_options_LRT.sigmaMax = options.abs_pose_max_error;
+  abs_pose_options.ransac_options_LRT.min_inlier_ratio =
+      options.abs_pose_min_inlier_ratio;
+  // Use high confidence to avoid preemptive termination of P3P RANSAC
+  // - too early termination may lead to bad registration.
+  abs_pose_options.ransac_options_LRT.min_num_trials = 100;
+  abs_pose_options.ransac_options_LRT.max_num_trials = 10000;
+  abs_pose_options.ransac_options_LRT.confidenceI = 0.99;
+  abs_pose_options.ransac_options_LRT.confidenceIIB = 0.95;
+  abs_pose_options.ransac_options_LRT.confidenceIIT = 0.99;
+
+  abs_pose_options.ransac_options_AC.sigmaMax = options.abs_pose_max_error;
+  abs_pose_options.ransac_options_AC.min_inlier_ratio =
+      options.abs_pose_min_inlier_ratio;
+  abs_pose_options.ransac_options_AC.min_num_trials = 100;
+  abs_pose_options.ransac_options_AC.max_num_trials = 10000;
 
   AbsolutePoseRefinementOptions abs_pose_refinement_options;
   if (num_reg_images_per_camera_[image.CameraId()] > 0) {
@@ -490,7 +515,7 @@ bool IncrementalMapper::RegisterNextImage(const Options& options,
 
   if (!EstimateAbsolutePose(abs_pose_options, tri_points2D, tri_points3D,
                             &image.Qvec(), &image.Tvec(), &camera, &num_inliers,
-                            &inlier_mask)) {
+                            &inlier_mask, ransacTimer)) {
     return false;
   }
 

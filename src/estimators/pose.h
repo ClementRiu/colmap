@@ -41,6 +41,8 @@
 #include "base/camera.h"
 #include "base/camera_models.h"
 #include "optim/loransac.h"
+#include "optim/lrtsac.h"
+#include "optim/acransac.h"
 #include "util/alignment.h"
 #include "util/logging.h"
 #include "util/threading.h"
@@ -68,13 +70,23 @@ struct AbsolutePoseEstimationOptions {
 
   // Options used for P3P RANSAC.
   RANSACOptions ransac_options;
+  LRTSACOptions ransac_options_LRT;
+  ACRANSACOptions ransac_options_AC;
 
   void Check() const {
     CHECK_GT(num_focal_length_samples, 0);
     CHECK_GT(min_focal_length_ratio, 0);
     CHECK_GT(max_focal_length_ratio, 0);
     CHECK_LT(min_focal_length_ratio, max_focal_length_ratio);
+#if !defined(USE_LRTSAC) && !defined(USE_ACRANSAC)
     ransac_options.Check();
+#endif
+#ifdef USE_LRTSAC
+    ransac_options_LRT.Check();
+#endif
+#ifdef USE_ACRANSAC
+    ransac_options_AC.Check();
+#endif
   }
 };
 
@@ -127,7 +139,8 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
                           const std::vector<Eigen::Vector3d>& points3D,
                           Eigen::Vector4d* qvec, Eigen::Vector3d* tvec,
                           Camera* camera, size_t* num_inliers,
-                          std::vector<char>* inlier_mask);
+                          std::vector<char>* inlier_mask,
+                          double &ransacTimer);
 
 // Estimate relative from 2D-2D correspondences.
 //

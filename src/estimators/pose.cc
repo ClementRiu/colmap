@@ -46,6 +46,8 @@ namespace colmap {
 namespace {
 
 typedef LORANSAC<P3PEstimator, EPNPEstimator> AbsolutePoseRANSAC;
+typedef LRTSAC<P3PEstimator> AbsolutePoseLRTSAC;
+typedef ACRANSAC<P3PEstimator> AbsolutePoseACRANSAC;
 
 void EstimateAbsolutePoseKernel(const Camera& camera,
                                 const double focal_length_factor,
@@ -74,6 +76,59 @@ void EstimateAbsolutePoseKernel(const Camera& camera,
   *report = ransac.Estimate(points2D_N, points3D);
 }
 
+void EstimateAbsolutePoseKernel_LRT(
+    const Camera& camera, const double focal_length_factor,
+    const std::vector<Eigen::Vector2d>& points2D,
+    const std::vector<Eigen::Vector3d>& points3D, const LRTSACOptions& options,
+    AbsolutePoseRANSAC::Report* report) {
+  // Scale the focal length by the given factor.
+  Camera scaled_camera = camera;
+  const std::vector<size_t>& focal_length_idxs = camera.FocalLengthIdxs();
+  for (const size_t idx : focal_length_idxs) {
+    scaled_camera.Params(idx) *= focal_length_factor;
+  }
+
+  // Normalize image coordinates with current camera hypothesis.
+  std::vector<Eigen::Vector2d> points2D_N(points2D.size());
+  for (size_t i = 0; i < points2D.size(); ++i) {
+    points2D_N[i] = scaled_camera.ImageToWorld(points2D[i]);
+  }
+
+  // Estimate pose for given focal length.
+  AbsolutePoseLRTSAC ransac(options);
+  size_t imagesDimensions[2] = {scaled_camera.Width(), scaled_camera.Height()};
+  double scalingFactor = 1. / scaled_camera.ImageToWorldThreshold(1.);
+  *report =
+      ransac.Estimate(points2D_N, points3D, imagesDimensions, scalingFactor);
+}
+
+void EstimateAbsolutePoseKernel_AC(const Camera& camera,
+                                   const double focal_length_factor,
+                                   const std::vector<Eigen::Vector2d>& points2D,
+                                   const std::vector<Eigen::Vector3d>& points3D,
+                                   const ACRANSACOptions& options,
+                                   AbsolutePoseRANSAC::Report* report) {
+  // Scale the focal length by the given factor.
+  Camera scaled_camera = camera;
+  const std::vector<size_t>& focal_length_idxs = camera.FocalLengthIdxs();
+  for (const size_t idx : focal_length_idxs) {
+    scaled_camera.Params(idx) *= focal_length_factor;
+  }
+
+  // Normalize image coordinates with current camera hypothesis.
+  std::vector<Eigen::Vector2d> points2D_N(points2D.size());
+  for (size_t i = 0; i < points2D.size(); ++i) {
+    points2D_N[i] = scaled_camera.ImageToWorld(points2D[i]);
+  }
+
+  // Estimate pose for given focal length.
+  AbsolutePoseACRANSAC ransac(options);
+  size_t imagesDimensions[2] = {scaled_camera.Width(), scaled_camera.Height()};
+  double scalingFactor = 1. / scaled_camera.ImageToWorldThreshold(1.);
+  *report =
+      ransac.Estimate(points2D_N, points3D, imagesDimensions, scalingFactor);
+}
+
 }  // namespace
 
 bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
@@ -81,7 +136,8 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
                           const std::vector<Eigen::Vector3d>& points3D,
                           Eigen::Vector4d* qvec, Eigen::Vector3d* tvec,
                           Camera* camera, size_t* num_inliers,
-                          std::vector<char>* inlier_mask) {
+                          std::vector<char>* inlier_mask,
+                          double &ransacTimer) {
   options.Check();
 
   std::vector<double> focal_length_factors;
@@ -111,11 +167,30 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
   ThreadPool thread_pool(std::min(
       options.num_threads, static_cast<int>(focal_length_factors.size())));
 
+#if !defined(USE_LRTSAC) && !defined(USE_ACRANSAC)
+  std::cout << "USING LORANSAC WITH THRESHOLD: " << options.ransac_options.max_error << std::endl;
   for (size_t i = 0; i < focal_length_factors.size(); ++i) {
     futures[i] = thread_pool.AddTask(
         EstimateAbsolutePoseKernel, *camera, focal_length_factors[i], points2D,
         points3D, options.ransac_options, &reports[i]);
   }
+#endif
+#ifdef USE_LRTSAC
+  std::cout << "USING LRTSAC WITH THRESHOLD: " << options.ransac_options_LRT.sigmaMax << std::endl;
+  for (size_t i = 0; i < focal_length_factors.size(); ++i) {
+    futures[i] = thread_pool.AddTask(
+        EstimateAbsolutePoseKernel_LRT, *camera, focal_length_factors[i], points2D,
+        points3D, options.ransac_options_LRT, &reports[i]);
+  }
+#endif
+#ifdef USE_ACRANSAC
+  std::cout << "USING ACRANSAC WITH THRESHOLD: " << options.ransac_options_AC.sigmaMax << std::endl;
+  for (size_t i = 0; i < focal_length_factors.size(); ++i) {
+    futures[i] = thread_pool.AddTask(
+        EstimateAbsolutePoseKernel_AC, *camera, focal_length_factors[i], points2D,
+        points3D, options.ransac_options_AC, &reports[i]);
+  }
+#endif
 
   double focal_length_factor = 0;
   Eigen::Matrix3x4d proj_matrix;
@@ -126,11 +201,14 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
   for (size_t i = 0; i < focal_length_factors.size(); ++i) {
     futures[i].get();
     const auto report = reports[i];
-    if (report.success && report.support.num_inliers > *num_inliers) {
+    if (report.success &&
+        report.support.num_inliers >
+            *num_inliers) {  // TODO: BE CAREFUL DOES NOT WORK FOR NOW
       *num_inliers = report.support.num_inliers;
       proj_matrix = report.model;
       *inlier_mask = report.inlier_mask;
       focal_length_factor = focal_length_factors[i];
+      ransacTimer += report.ransacTimer;
     }
   }
 

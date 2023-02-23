@@ -61,6 +61,12 @@ class P3PEstimator {
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 3;
 
+  static const int nDegreeOfFreedom = 6;
+
+  static const int NbModels = 4;
+
+  static const bool DistToPoint = true;
+
   // Estimate the most probable solution of the P3P problem from a set of
   // three 2D-3D point correspondences.
   //
@@ -81,6 +87,12 @@ class P3PEstimator {
   static void Residuals(const std::vector<X_t>& points2D,
                         const std::vector<Y_t>& points3D,
                         const M_t& proj_matrix, std::vector<double>* residuals);
+
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& H);
+
+  static double pSigma(const double sigma,
+                       const size_t imagesDimensions[],
+                       const bool leftSide = true);
 };
 
 // EPNP solver for the PNP (Perspective-N-Point) problem. The solver needs a
@@ -106,6 +118,12 @@ class EPNPEstimator {
   // The minimum number of samples needed to estimate a model.
   static const int kMinNumSamples = 4;
 
+  static const int nDegreeOfFreedom = 6;
+
+  static const int NbModels = 4;
+
+  static const bool DistToPoint = true;
+
   // Estimate the most probable solution of the P3P problem from a set of
   // three 2D-3D point correspondences.
   //
@@ -126,6 +144,12 @@ class EPNPEstimator {
   static void Residuals(const std::vector<X_t>& points2D,
                         const std::vector<Y_t>& points3D,
                         const M_t& proj_matrix, std::vector<double>* residuals);
+
+  static double Residual(const X_t& point1, const Y_t& point2, const M_t& H);
+
+  static double pSigma(const double sigma,
+                       const size_t imagesDimensions[],
+                       const bool leftSide = true);
 
  private:
   bool ComputePose(const std::vector<Eigen::Vector2d>& points2D,

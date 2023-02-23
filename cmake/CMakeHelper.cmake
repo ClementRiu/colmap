@@ -120,9 +120,25 @@ macro(COLMAP_ADD_STATIC_LIBRARY TARGET_NAME)
     # ${ARGN} will store the list of source files passed to this function.
     add_library(${TARGET_NAME} STATIC ${ARGN})
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
-        ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
+            ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
     install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap)
 endmacro(COLMAP_ADD_STATIC_LIBRARY)
+macro(COLMAP_ADD_STATIC_LIBRARY_LRTSAC TARGET_NAME)
+    # ${ARGN} will store the list of source files passed to this function.
+    add_library(${TARGET_NAME} STATIC ${ARGN})
+    set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_FLAGS -DUSE_LRTSAC)
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
+            ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
+    install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap)
+endmacro(COLMAP_ADD_STATIC_LIBRARY_LRTSAC)
+macro(COLMAP_ADD_STATIC_LIBRARY_ACRANSAC TARGET_NAME)
+    # ${ARGN} will store the list of source files passed to this function.
+    add_library(${TARGET_NAME} STATIC ${ARGN})
+    set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_FLAGS -DUSE_ACRANSAC)
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
+            ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
+    install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap)
+endmacro(COLMAP_ADD_STATIC_LIBRARY_ACRANSAC)
 
 # Replacement for the normal cuda_add_library() command. The syntax remains the
 # same in that the first argument is the target name, and the following
@@ -157,6 +173,32 @@ macro(COLMAP_ADD_EXECUTABLE TARGET_NAME)
         install(TARGETS ${TARGET_NAME} DESTINATION bin/)
     endif()
 endmacro(COLMAP_ADD_EXECUTABLE)
+
+macro(COLMAP_ADD_EXECUTABLE_LRTSAC TARGET_NAME)
+    # ${ARGN} will store the list of source files passed to this function.
+    add_executable(${TARGET_NAME} ${ARGN})
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
+            ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
+    target_link_libraries(${TARGET_NAME} colmapLRT)
+    if(VCPKG_BUILD)
+        install(TARGETS ${TARGET_NAME} DESTINATION tools/)
+    else()
+        install(TARGETS ${TARGET_NAME} DESTINATION bin/)
+    endif()
+endmacro(COLMAP_ADD_EXECUTABLE_LRTSAC)
+
+macro(COLMAP_ADD_EXECUTABLE_ACRANSAC TARGET_NAME)
+    # ${ARGN} will store the list of source files passed to this function.
+    add_executable(${TARGET_NAME} ${ARGN})
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
+            ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
+    target_link_libraries(${TARGET_NAME} colmapAC)
+    if(VCPKG_BUILD)
+        install(TARGETS ${TARGET_NAME} DESTINATION tools/)
+    else()
+        install(TARGETS ${TARGET_NAME} DESTINATION bin/)
+    endif()
+endmacro(COLMAP_ADD_EXECUTABLE_ACRANSAC)
 
 # Wrapper for test executables.
 macro(COLMAP_ADD_TEST TARGET_NAME)
