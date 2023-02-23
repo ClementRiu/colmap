@@ -42,6 +42,7 @@
 #include "optim/support_measurement.h"
 #include "util/alignment.h"
 #include "util/logging.h"
+#include "util/timer.h"
 
 namespace colmap {
 
@@ -91,7 +92,9 @@ template <typename Estimator, typename LocalEstimator, typename SupportMeasurer,
 typename LORANSAC<Estimator, LocalEstimator, SupportMeasurer, Sampler>::Report
 LORANSAC<Estimator, LocalEstimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::X_t>& X,
-    const std::vector<typename Estimator::Y_t>& Y) {
+    const std::vector< typename Estimator::Y_t>& Y) {
+  Timer timerLOR;
+  timerLOR.Start();
   CHECK_EQ(X.size(), Y.size());
 
   const size_t num_samples = X.size();
@@ -244,6 +247,8 @@ LORANSAC<Estimator, LocalEstimator, SupportMeasurer, Sampler>::Estimate(
   for (size_t i = 0; i < residuals.size(); ++i) {
     report.inlier_mask[i] = residuals[i] <= max_residual;
   }
+
+  report.ransacTimer = timerLOR.ElapsedSeconds();
 
   return report;
 }
