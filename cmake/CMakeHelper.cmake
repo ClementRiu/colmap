@@ -139,6 +139,14 @@ macro(COLMAP_ADD_STATIC_LIBRARY_ACRANSAC TARGET_NAME)
             ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
     install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap)
 endmacro(COLMAP_ADD_STATIC_LIBRARY_ACRANSAC)
+macro(COLMAP_ADD_STATIC_LIBRARY_FASTACRANSAC TARGET_NAME)
+# ${ARGN} will store the list of source files passed to this function.
+add_library(${TARGET_NAME} STATIC ${ARGN})
+set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_FLAGS -DUSE_FASTACRANSAC)
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
+${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
+install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap)
+endmacro(COLMAP_ADD_STATIC_LIBRARY_FASTACRANSAC)
 
 # Replacement for the normal cuda_add_library() command. The syntax remains the
 # same in that the first argument is the target name, and the following
@@ -199,6 +207,19 @@ macro(COLMAP_ADD_EXECUTABLE_ACRANSAC TARGET_NAME)
         install(TARGETS ${TARGET_NAME} DESTINATION bin/)
     endif()
 endmacro(COLMAP_ADD_EXECUTABLE_ACRANSAC)
+
+macro(COLMAP_ADD_EXECUTABLE_FASTACRANSAC TARGET_NAME)
+    # ${ARGN} will store the list of source files passed to this function.
+    add_executable(${TARGET_NAME} ${ARGN})
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
+            ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
+    target_link_libraries(${TARGET_NAME} colmapFastAC)
+    if(VCPKG_BUILD)
+        install(TARGETS ${TARGET_NAME} DESTINATION tools/)
+    else()
+        install(TARGETS ${TARGET_NAME} DESTINATION bin/)
+    endif()
+endmacro(COLMAP_ADD_EXECUTABLE_FASTACRANSAC)
 
 # Wrapper for test executables.
 macro(COLMAP_ADD_TEST TARGET_NAME)

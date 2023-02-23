@@ -43,6 +43,7 @@
 #include "optim/loransac.h"
 #include "optim/lrtsac.h"
 #include "optim/acransac.h"
+#include "optim/fast_acransac.h"
 #include "util/alignment.h"
 #include "util/logging.h"
 #include "util/threading.h"
@@ -78,13 +79,13 @@ struct AbsolutePoseEstimationOptions {
     CHECK_GT(min_focal_length_ratio, 0);
     CHECK_GT(max_focal_length_ratio, 0);
     CHECK_LT(min_focal_length_ratio, max_focal_length_ratio);
-#if !defined(USE_LRTSAC) && !defined(USE_ACRANSAC)
+#if !defined(USE_LRTSAC) && !defined(USE_ACRANSAC) && !defined(USE_FASTACRANSAC)
     ransac_options.Check();
 #endif
 #ifdef USE_LRTSAC
     ransac_options_LRT.Check();
 #endif
-#ifdef USE_ACRANSAC
+#ifdef defined(USE_ACRANSAC) || defined(USE_FASTACRANSAC)
     ransac_options_AC.Check();
 #endif
   }

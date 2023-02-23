@@ -457,18 +457,18 @@ bool IncrementalMapper::RegisterNextImage(const Options& options,
   abs_pose_options.ransac_options.max_num_trials = 10000;
   abs_pose_options.ransac_options.confidence = 0.99999;
 
-  abs_pose_options.ransac_options_LRT.sigmaMax = options.abs_pose_max_error;
+  abs_pose_options.ransac_options_LRT.sigmaMax = 32;
   abs_pose_options.ransac_options_LRT.min_inlier_ratio =
       options.abs_pose_min_inlier_ratio;
   // Use high confidence to avoid preemptive termination of P3P RANSAC
-  // - too early termination may lead to bad registration.
+  // - too early termination may lead to bad ation.
   abs_pose_options.ransac_options_LRT.min_num_trials = 100;
   abs_pose_options.ransac_options_LRT.max_num_trials = 10000;
   abs_pose_options.ransac_options_LRT.confidenceI = 0.99;
   abs_pose_options.ransac_options_LRT.confidenceIIB = 0.95;
   abs_pose_options.ransac_options_LRT.confidenceIIT = 0.99;
 
-  abs_pose_options.ransac_options_AC.sigmaMax = options.abs_pose_max_error;
+  abs_pose_options.ransac_options_AC.sigmaMax = 32;
   abs_pose_options.ransac_options_AC.min_inlier_ratio =
       options.abs_pose_min_inlier_ratio;
   abs_pose_options.ransac_options_AC.min_num_trials = 100;

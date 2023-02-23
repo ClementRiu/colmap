@@ -71,6 +71,18 @@ COLMAP_ADD_EXECUTABLE_ACRANSAC(colmap_ACRANSAC
         vocab_tree.cc)
 set_target_properties(colmap_ACRANSAC PROPERTIES OUTPUT_NAME colmap_AC)
 
+COLMAP_ADD_EXECUTABLE_FASTACRANSAC(colmap_FastACRANSAC
+        colmap.cc
+        database.cc
+        feature.cc
+        gui.cc
+        image.cc
+        model.cc
+        mvs.cc
+        sfm.cc
+        vocab_tree.cc)
+set_target_properties(colmap_FastACRANSAC PROPERTIES OUTPUT_NAME colmap_FastAC)
+
 COLMAP_ADD_SOURCES(
     feature.h feature.cc
     sfm.h sfm.cc

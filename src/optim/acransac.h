@@ -298,7 +298,6 @@ ACRANSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
         for (int i = 0; i < best.index; ++i)
           vInliers[i] = indexedErrors[i].index;
         errorMax = indexedErrors[best.index - 1].error;  // Error threshold
-        best_model = sample_model;
       }
       // ORSA optimization: draw samples among best set of inliers so far
       if ((better && minNFA < 0) ||
