@@ -176,6 +176,8 @@ class IncrementalMapperController : public Thread {
   void Run();
   bool LoadDatabase();
   void Reconstruct(const IncrementalMapper::Options& init_mapper_options);
+  void Reconstruct(const IncrementalMapper::Options& init_mapper_options, double &timeRansac);
+
 
   const IncrementalMapperOptions* options_;
   const std::string image_path_;

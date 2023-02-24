@@ -319,9 +319,10 @@ void IncrementalMapperController::Run() {
   if (!LoadDatabase()) {
     return;
   }
+  double timeRansac = 0;
 
   IncrementalMapper::Options init_mapper_options = options_->Mapper();
-  Reconstruct(init_mapper_options);
+  Reconstruct(init_mapper_options, timeRansac);
 
   const size_t kNumInitRelaxations = 2;
   for (size_t i = 0; i < kNumInitRelaxations; ++i) {
@@ -331,7 +332,7 @@ void IncrementalMapperController::Run() {
 
     std::cout << "  => Relaxing the initialization constraints." << std::endl;
     init_mapper_options.init_min_num_inliers /= 2;
-    Reconstruct(init_mapper_options);
+    Reconstruct(init_mapper_options, timeRansac);
 
     if (reconstruction_manager_->Size() > 0 || IsStopped()) {
       break;
@@ -339,11 +340,17 @@ void IncrementalMapperController::Run() {
 
     std::cout << "  => Relaxing the initialization constraints." << std::endl;
     init_mapper_options.init_min_tri_angle /= 2;
-    Reconstruct(init_mapper_options);
+    Reconstruct(init_mapper_options, timeRansac);
   }
 
   std::cout << std::endl;
   GetTimer().PrintMinutes();
+  double genTimer = GetTimer().ElapsedSeconds();
+  std::ofstream FileTime("TIME.txt");
+  if (FileTime.is_open()){
+    FileTime << genTimer << "\n" << timeRansac << "\n";
+  }
+  FileTime.close();
 }
 
 bool IncrementalMapperController::LoadDatabase() {
@@ -380,9 +387,14 @@ bool IncrementalMapperController::LoadDatabase() {
 
   return true;
 }
-
 void IncrementalMapperController::Reconstruct(
     const IncrementalMapper::Options& init_mapper_options) {
+  double ransacTime;
+  Reconstruct(init_mapper_options, ransacTime);
+}
+
+void IncrementalMapperController::Reconstruct(
+    const IncrementalMapper::Options& init_mapper_options, double &timeRansac) {
   const bool kDiscardReconstruction = true;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -599,6 +611,7 @@ void IncrementalMapperController::Reconstruct(
     }
 
     std::cout << "TIME IN RANSAC: " << ransacTimer << std::endl;
+    timeRansac += ransacTimer;
 
     if (IsStopped()) {
       const bool kDiscardReconstruction = false;
