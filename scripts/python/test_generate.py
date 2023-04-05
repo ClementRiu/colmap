@@ -326,7 +326,7 @@ def _add_noise(uv_val_, noise_std_, camera_):
     truncated = np.clip(noisy_uv_val, a_min = [0, 0], a_max = [camera_._width, camera_._height])
     return truncated
 
-def generate_GT_inliers(keep_, all_features_, Images_, Cameras_, points3D_out_, noise_std_):
+def generate_GT_inliers(keep_, all_features_, Images_, Cameras_, points3D_out_, noise_std_, init_image1 = -1, init_image2 = -1):
     max_pert = 0
     for image_id, features_to_keep in keep_.items():
         for feature_id in features_to_keep:
@@ -335,6 +335,8 @@ def generate_GT_inliers(keep_, all_features_, Images_, Cameras_, points3D_out_, 
             camera = Cameras_._cameras[image._camera_id]
             xyz_val = points3D_out_[feature._point3D_id].xyz
             uv_val = _align(xyz_val, camera, image)
+            if image_id == init_image1 or image_id == init_image2:
+                continue
             if noise_std_ > 0:
                 uv_val_pert = _add_noise(uv_val, noise_std_, camera)
                 pert = np.linalg.norm(uv_val - uv_val_pert)
@@ -405,15 +407,16 @@ def _generate_outlier(xyz_val_, camera_, image_, min_offset_, iteration_, max_it
 
 def generate_GT_outliers(all_features_, keep_, two_views_withfeatures_,
                          outlier_ratio_, max_inlier_error_, max_try_outlier_,
-                         Images_, Cameras_, points3D_out_):
+                         Images_, Cameras_, points3D_out_,
+                         init_image1 = -1, init_image2 = -1):
     id_feature_new = len(all_features_)
     for id_pair, two_view in two_views_withfeatures_.items():
         image_ids = pair_id_to_image_ids(id_pair)
-        if 1 in image_ids and 9 in image_ids:
+        if init_image1 in image_ids and init_image2 in image_ids:
             continue
-        elif 1 in image_ids:
+        elif init_image1 == image_ids[0] or init_image2 == image_ids[0]:
             side = 1
-        elif 9 in image_ids:
+        elif init_image1 == image_ids[1] or init_image2 == image_ids[1]:
             side = 0
         else:
             side = np.random.randint(0, 2)
@@ -525,15 +528,26 @@ def main(args):
     ### Data is loaded and ready for processing.
     max_inlier_error = 0
     if args.align =="True":
-        max_inlier_error = generate_GT_inliers(keep, all_features, Images_in, Cameras_in, points3D_out, args.noise_std)
+        max_inlier_error = generate_GT_inliers(keep, all_features, Images_in, Cameras_in, points3D_out, args.noise_std, args.init_image1, args.init_image2)
+
+    print("=============  Before =============")
+    before = {}
+    for image_id_print, feature in keep.items():
+        print(image_id_print, len(feature))
+        before[image_id_print] = len(feature)
 
     if args.outlier_ratio > 0:
         two_views_withfeatures = create_2view_featured(Two_view_geometrys_in, features_by_image)
 
         generate_GT_outliers(all_features, keep, two_views_withfeatures,
                              args.outlier_ratio, max_inlier_error, args.max_try_outlier,
-                             Images_in, Cameras_in, points3D_out)
+                             Images_in, Cameras_in, points3D_out,
+                             args.init_image1, args.init_image2)
 
+    print("============= After =============")
+    for image_id_print, feature in keep.items():
+        print(image_id_print, len(feature))
+        print((len(feature) - before[image_id_print]) / len(feature))
 
     ### Prepare for export of data.
     descriptors_feated, keypoints_feated, reordered_feature_by_image = create_descriptors_and_keypoints_tabs_from_features(keep, all_features)
@@ -576,6 +590,11 @@ if __name__ == "__main__":
                         help="Align points with 3D", default="False")
     parser.add_argument("--noise_std", type=float,
                         help="Noise level of inliers", default=0.0)
+
+    parser.add_argument("--init_image1", type=int,
+                        help="Image to leave unchanged", default=-1)
+    parser.add_argument("--init_image2", type=int,
+                        help="Image to leave unchanged", default=-1)
 
     parser.add_argument("--outlier_ratio", type=float,
                         help="Ratio of outliers in the total number of points.", default=0.0)

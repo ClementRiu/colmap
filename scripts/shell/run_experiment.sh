@@ -3,6 +3,9 @@ workspacePath=${workspacePath:--1} ## /colmap_dataset/gerrard-hall-small/
 inputFormat=${inputFormat:-".txt"}
 outputPath=${outputPath:--1}
 
+initImage1=${initImage1:--1}
+initImage2=${initImage2:--1}
+
 delete=${delete:-0}
 validate=${validate:-1}
 align=${align:-1}
@@ -38,21 +41,21 @@ databasePath="${workspacePath}/database.db"
 expOutputPath="${workspacePath}/sparse/"
 
 stdNoiseMin=0.0
-stdNoiseMax=3.0
-stdNoiseStep=0.2
+stdNoiseMax=6.0
+stdNoiseStep=0.5
 
 stdNoiseCounterMin=0 #Used for the while loop.
-stdNoiseCounterMax=15 #Used for the while loop. = (stdNoiseMax - stdNoiseMin) / stdNoiseStep
+stdNoiseCounterMax=12 #Used for the while loop. = (stdNoiseMax - stdNoiseMin) / stdNoiseStep
 
 stdNoise=${stdNoiseMin}
 stdNoiseCounter=${stdNoiseCounterMin} #Used for the while loop.
 
 outlierRatioMin=0.0
-outlierRatioMax=0.5
+outlierRatioMax=0.9
 outlierRatioStep=0.1
 
 outlierRatioCounterMin=0 #Used for the while loop.
-outlierRatioCounterMax=5 #Used for the while loop. = (outlierRatioMax - outlierRatioMin) / outlierRatioStep
+outlierRatioCounterMax=10 #Used for the while loop. = (outlierRatioMax - outlierRatioMin) / outlierRatioStep
 
 outlierRatio=${outlierRatioMin}
 outlierRatioCounter=${outlierRatioCounterMin} #Used for the while loop.
@@ -62,9 +65,10 @@ do
     while [ "${stdNoiseCounter}" -ge "${stdNoiseCounterMin}" ] && [ "${stdNoiseCounter}" -le "${stdNoiseCounterMax}" ]
             do
 
+        printf "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
         printf "Begining for inlier noise: ${stdNoise} and outlier ratio: ${outlierRatio} .\n\n"
 
-        genArgs="--input_model ${inputModel} --input_format ${inputFormat} --read_database ${readDatabase} --database_path ${databasePath} --noise_std ${stdNoise} --outlier_ratio ${outlierRatio} --max_try_outlier ${maxTryOutlier}"
+        genArgs="--input_model ${inputModel} --input_format ${inputFormat} --read_database ${readDatabase} --database_path ${databasePath} --noise_std ${stdNoise} --outlier_ratio ${outlierRatio} --max_try_outlier ${maxTryOutlier} --init_image1 ${initImage1} --init_image2 ${initImage2}"
         if [ "${delete}" -eq "1" ]; then
             genArgs="${genArgs} --delete True"
         fi

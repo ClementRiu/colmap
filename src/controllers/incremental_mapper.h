@@ -64,11 +64,11 @@ struct IncrementalMapperOptions {
   // The image identifiers used to initialize the reconstruction. Note that
   // only one or both image identifiers can be specified. In the former case,
   // the second image is automatically determined.
-  int init_image_id1 = -1;
-  int init_image_id2 = -1;
+  int init_image_id1 = 3;
+  int init_image_id2 = 7;
 
   // The number of trials to initialize the reconstruction.
-  int init_num_trials = 200;
+  int init_num_trials = 1;
 
   // Whether to extract colors for reconstructed points.
   bool extract_colors = true;

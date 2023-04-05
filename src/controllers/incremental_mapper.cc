@@ -463,6 +463,11 @@ void IncrementalMapperController::Reconstruct(
 
       PrintHeading1(StringPrintf("Initializing with image pair #%d and #%d",
                                  image_id1, image_id2));
+      std::ofstream FilePair("pair.txt");
+      if (FilePair.is_open()){
+        FilePair << image_id1 << "\n" << image_id2 << "\n";
+      }
+      FilePair.close();
       const bool reg_init_success = mapper.RegisterInitialImagePair(
           init_mapper_options, image_id1, image_id2);
       if (!reg_init_success) {

@@ -299,31 +299,32 @@ ACRANSAC<Estimator, SupportMeasurer, Sampler>::Estimate(
           vInliers[i] = indexedErrors[i].index;
         errorMax = indexedErrors[best.index - 1].error;  // Error threshold
       }
-      // ORSA optimization: draw samples among best set of inliers so far
-      if ((better && minNFA < 0) ||
-          (report.num_trials + 1 == dyn_max_num_trials && num_trials_reserve)) {
-        if (vInliers.empty()) {  // No model found at all so far
-          dyn_max_num_trials++;  // Continue to look for any model, even not
-                                 // meaningful
-          num_trials_reserve--;
-        } else {
-          std::vector<int>::const_iterator itInlier = vInliers.begin();
-          Xselected.resize(vInliers.size());
-          Yselected.resize(vInliers.size());
-          for (int i = 0; itInlier != vInliers.end(); itInlier++, i++) {
-            Xselected[i] = X[*itInlier];
-            Yselected[i] = Y[*itInlier];
-          }
-          if (num_trials_reserve) {
-            dyn_max_num_trials = report.num_trials + 1 + num_trials_reserve;
-            num_trials_reserve = 0;
-          }
-        }
-      }
       if (report.num_trials >= dyn_max_num_trials &&
           report.num_trials >= options_.min_num_trials) {
         abort = true;
         break;
+      }
+    }
+    // ORSA optimization: draw samples among best set of inliers so far
+    if ((better && minNFA < 0) ||
+        (report.num_trials + 1 == dyn_max_num_trials && num_trials_reserve > 0)) {
+      if (vInliers.empty()) {  // No model found at all so far
+        dyn_max_num_trials++;  // Continue to look for any model, even not
+                               // meaningful
+        num_trials_reserve--;
+      } else {
+        std::vector<int>::const_iterator itInlier = vInliers.begin();
+        Xselected.resize(vInliers.size());
+        Yselected.resize(vInliers.size());
+        for (int i = 0; itInlier != vInliers.end(); itInlier++, i++) {
+          Xselected[i] = X[*itInlier];
+          Yselected[i] = Y[*itInlier];
+        }
+        sampler.Initialize(vInliers.size());
+        if (num_trials_reserve) {
+          dyn_max_num_trials = report.num_trials + 1 + num_trials_reserve;
+          num_trials_reserve = 0;
+        }
       }
     }
   }
