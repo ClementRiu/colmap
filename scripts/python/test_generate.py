@@ -113,6 +113,13 @@ class FEATURE:
     def is_valid(self):
         return len(self._match_right) + len(self._match_left) > 0
 
+    def print(self):
+        print(self._feature_id, self._image_id, self._point3D_id, self._index)
+        print('')
+        print(self._position)
+        print('')
+        print(self._match_right, self._match_left)
+
 def assign_match_by_id(Two_view_geometrys_):
     image_right = defaultdict(lambda: defaultdict(list))
     image_left = defaultdict(lambda: defaultdict(list))
@@ -343,7 +350,7 @@ def generate_GT_inliers(keep_, all_features_, Images_, Cameras_, points3D_out_, 
                 uv_val = uv_val_pert
                 if pert > max_pert:
                     max_pert = pert
-            feature._position[:2] = uv_val
+            feature._position = np.hstack([uv_val, feature._position[2:]])
     return max_pert
 
 def create_2view_featured(Two_view_geometrys_, features_by_image_):
@@ -445,8 +452,7 @@ def generate_GT_outliers(all_features_, keep_, two_views_withfeatures_,
                                             max_inlier_error_, iteration, max_try_outlier_ + num_outlier_req)
 
             if outlier_pos is not None:
-                position = feature_to_modify._position
-                position[:2] = outlier_pos
+                position = np.hstack([outlier_pos, feature_to_modify._position[2:]])
 
                 if side:
                     idx_to_change_side = \
@@ -482,6 +488,36 @@ def generate_GT_outliers(all_features_, keep_, two_views_withfeatures_,
                 keep_[image_id].add(id_feature_new)
                 id_feature_new += 1
     return None
+
+def check_duplicate(keypoints_feated_asarray_,
+                    matches_feated_asarray_, twoview_feated_asarray_,
+                    verbose_=False):
+    max_diff = 0
+    if verbose_:
+        print("Keypoints:")
+    for index, elem in keypoints_feated_asarray_.items():
+        diff = len(elem._data) - len(np.unique(elem._data, axis=0))
+        if max_diff < diff:
+            max_diff = diff
+        if verbose_:
+            print(index, diff)
+    if verbose_:
+        print("Matches:")
+    for index, elem in matches_feated_asarray_.items():
+        diff = len(elem._data) - len(np.unique(elem._data, axis=0))
+        if max_diff < diff:
+            max_diff = diff
+        if verbose_:
+            print(pair_id_to_image_ids(index), diff)
+    if verbose_:
+        print("Two View:")
+    for index, elem in twoview_feated_asarray_.items():
+        diff = len(elem._data) - len(np.unique(elem._data, axis=0))
+        if max_diff < diff:
+            max_diff = diff
+        if verbose_:
+            print(pair_id_to_image_ids(index), diff)
+    return max_diff
 
 def main(args):
     ### Import output of some run.
@@ -546,8 +582,7 @@ def main(args):
 
     print("============= After =============")
     for image_id_print, feature in keep.items():
-        print(image_id_print, len(feature))
-        print((len(feature) - before[image_id_print]) / len(feature))
+        print(image_id_print, len(feature), (len(feature) - before[image_id_print]) / len(feature))
 
     ### Prepare for export of data.
     descriptors_feated, keypoints_feated, reordered_feature_by_image = create_descriptors_and_keypoints_tabs_from_features(keep, all_features)
@@ -559,15 +594,18 @@ def main(args):
     matches_feated_asarray = create_new_matches_asarray(matches_feated)
     twoview_feated_asarray = create_new_2view_asarray(two_view_geometry_feated, Two_view_geometrys_in)
 
-    Cameras_in.write_to_base(db)
-    Images_in.write_to_base(db)
-    write_descriptors_to_base(descriptors_feated_asarray, db)
-    write_keypoints_to_base(keypoints_feated_asarray, db)
-    write_matches_to_base(matches_feated_asarray, db)
-    write_twoview_to_base(twoview_feated_asarray, db)
+    duplicate_max = check_duplicate(keypoints_feated_asarray, matches_feated_asarray, twoview_feated_asarray)
+    if duplicate_max == 0:
 
-    # Commit the data to the file.
-    db.commit()
+        Cameras_in.write_to_base(db)
+        Images_in.write_to_base(db)
+        write_descriptors_to_base(descriptors_feated_asarray, db)
+        write_keypoints_to_base(keypoints_feated_asarray, db)
+        write_matches_to_base(matches_feated_asarray, db)
+        write_twoview_to_base(twoview_feated_asarray, db)
+
+        # Commit the data to the file.
+        db.commit()
 
     # Clean up.
     db.close()
