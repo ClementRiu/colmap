@@ -11,6 +11,8 @@ validate=${validate:-1}
 align=${align:-1}
 maxTryOutlier=${maxTryOutlier:-100}
 
+trialMax=${trialMax:-10}
+
 while [ $# -gt 0 ]; do
 
    if [[ $1 == *"--"* ]]; then
@@ -55,7 +57,7 @@ outlierRatioMax=0.9
 outlierRatioStep=0.1
 
 outlierRatioCounterMin=0 #Used for the while loop.
-outlierRatioCounterMax=10 #Used for the while loop. = (outlierRatioMax - outlierRatioMin) / outlierRatioStep
+outlierRatioCounterMax=9 #Used for the while loop. = (outlierRatioMax - outlierRatioMin) / outlierRatioStep
 
 outlierRatio=${outlierRatioMin}
 outlierRatioCounter=${outlierRatioCounterMin} #Used for the while loop.
@@ -68,7 +70,13 @@ do
         printf "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
         printf "Begining for inlier noise: ${stdNoise} and outlier ratio: ${outlierRatio} .\n\n"
 
-        genArgs="--input_model ${inputModel} --input_format ${inputFormat} --read_database ${readDatabase} --database_path ${databasePath} --noise_std ${stdNoise} --outlier_ratio ${outlierRatio} --max_try_outlier ${maxTryOutlier} --init_image1 ${initImage1} --init_image2 ${initImage2}"
+
+        resultPath="${outputPath}/OUT_${stdNoise}_${outlierRatio}/"
+        mkdir -p ${resultPath}
+
+        inlierOutlierPath="${resultPath}/inlier_outlier.txt"
+
+        genArgs="--input_model ${inputModel} --input_format ${inputFormat} --read_database ${readDatabase} --database_path ${databasePath} --inlier_outlier_path ${inlierOutlierPath} --noise_std ${stdNoise} --outlier_ratio ${outlierRatio} --max_try_outlier ${maxTryOutlier} --init_image1 ${initImage1} --init_image2 ${initImage2}"
         if [ "${delete}" -eq "1" ]; then
             genArgs="${genArgs} --delete True"
         fi
@@ -83,40 +91,40 @@ do
 
         expArgs="--workspace_path ${workspacePath} --image_path ${imagePath}"
 
-        resultPath="${outputPath}/${stdNoise}_${outlierRatio}/"
-        mkdir -p ${resultPath}
+        trialCounter=0
+        while [ "${trialCounter}" -ge 0 ] && [ "${trialCounter}" -le "${trialMax}" ]
+                do
+            build/src/exe/colmap automatic_reconstructor ${expArgs}
 
-        build/src/exe/colmap automatic_reconstructor ${expArgs}
+            mv "${expOutputPath}0/cameras.bin" "${resultPath}/ransac_${trialCounter}_cameras.bin"
+            mv "${expOutputPath}0/images.bin" "${resultPath}/ransac_${trialCounter}_images.bin"
+            mv "${expOutputPath}0/points3D.bin" "${resultPath}/ransac_${trialCounter}_points3D.bin"
+            rm -r "${expOutputPath}0/"
+            mv "TIME.txt" "${resultPath}/ransac_${trialCounter}_time.txt"
 
-        mv "${expOutputPath}0/cameras.bin" "${resultPath}/ransac_cameras.bin"
-        mv "${expOutputPath}0/images.bin" "${resultPath}/ransac_images.bin"
-        mv "${expOutputPath}0/points3D.bin" "${resultPath}/ransac_points3D.bin"
-        rm -r "${expOutputPath}0/"
-        mv "TIME.txt" "${resultPath}/ransac_time.txt"
+            build/src/exe/colmap_AC automatic_reconstructor ${expArgs}
 
-        build/src/exe/colmap_AC automatic_reconstructor ${expArgs}
+            mv "${expOutputPath}0/cameras.bin" "${resultPath}/acransac_${trialCounter}_cameras.bin"
+            mv "${expOutputPath}0/images.bin" "${resultPath}/acransac_${trialCounter}_images.bin"
+            mv "${expOutputPath}0/points3D.bin" "${resultPath}/acransac_${trialCounter}_points3D.bin"
+            rm -r "${expOutputPath}0/"
+            mv "TIME.txt" "${resultPath}/acransac_${trialCounter}_time.txt"
 
-        mv "${expOutputPath}0/cameras.bin" "${resultPath}/acransac_cameras.bin"
-        mv "${expOutputPath}0/images.bin" "${resultPath}/acransac_images.bin"
-        mv "${expOutputPath}0/points3D.bin" "${resultPath}/acransac_points3D.bin"
-        rm -r "${expOutputPath}0/"
-        mv "TIME.txt" "${resultPath}/acransac_time.txt"
+            build/src/exe/colmap_FastAC automatic_reconstructor ${expArgs}
 
-        build/src/exe/colmap_FastAC automatic_reconstructor ${expArgs}
+            mv "${expOutputPath}0/cameras.bin" "${resultPath}/fastac_${trialCounter}_cameras.bin"
+            mv "${expOutputPath}0/images.bin" "${resultPath}/fastac_${trialCounter}_images.bin"
+            mv "${expOutputPath}0/points3D.bin" "${resultPath}/fastac_${trialCounter}_points3D.bin"
+            rm -r "${expOutputPath}0/"
+            mv "TIME.txt" "${resultPath}/fastac_${trialCounter}_time.txt"
 
-        mv "${expOutputPath}0/cameras.bin" "${resultPath}/fastac_cameras.bin"
-        mv "${expOutputPath}0/images.bin" "${resultPath}/fastac_images.bin"
-        mv "${expOutputPath}0/points3D.bin" "${resultPath}/fastac_points3D.bin"
-        rm -r "${expOutputPath}0/"
-        mv "TIME.txt" "${resultPath}/fastac_time.txt"
+            build/src/exe/colmap_LRT automatic_reconstructor ${expArgs}
 
-        build/src/exe/colmap_LRT automatic_reconstructor ${expArgs}
-
-        mv "${expOutputPath}0/cameras.bin" "${resultPath}/lrt_cameras.bin"
-        mv "${expOutputPath}0/images.bin" "${resultPath}/lrt_images.bin"
-        mv "${expOutputPath}0/points3D.bin" "${resultPath}/lrt_points3D.bin"
-        rm -r "${expOutputPath}0/"
-        mv "TIME.txt" "${resultPath}/lrt_time.txt"
+            mv "${expOutputPath}0/cameras.bin" "${resultPath}/lrt_${trialCounter}_cameras.bin"
+            mv "${expOutputPath}0/images.bin" "${resultPath}/lrt_${trialCounter}_images.bin"
+            mv "${expOutputPath}0/points3D.bin" "${resultPath}/lrt_${trialCounter}_points3D.bin"
+            rm -r "${expOutputPath}0/"
+            mv "TIME.txt" "${resultPath}/lrt_${trialCounter}_time.txt"
 
         mv ${databasePath} "${resultPath}/database.db"
 

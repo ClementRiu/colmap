@@ -96,7 +96,8 @@ class FEATURE:
                  feature_id_, image_id_, point3D_id_, index_,
                  position_, descriptor_,
                  match_right_, match_left_,
-                 ncols_keypoints_, ncols_descriptors_):
+                 ncols_keypoints_, ncols_descriptors_,
+                 inlier_=1):
         self._feature_id = feature_id_
         self._image_id = image_id_
         self._point3D_id = point3D_id_
@@ -109,6 +110,8 @@ class FEATURE:
 
         self._ncols_keypoints = ncols_keypoints_
         self._ncols_descriptors = ncols_descriptors_
+
+        self._inlier = inlier_
 
     def is_valid(self):
         return len(self._match_right) + len(self._match_left) > 0
@@ -188,6 +191,7 @@ def correct_match_ids(Two_view_geometrys_, features_by_image_, all_features_):
 def create_descriptors_and_keypoints_tabs_from_features(keep_, all_features_):
     descriptors_feated = defaultdict(list)
     keypoints_feated = defaultdict(list)
+    inlier_outlier = defaultdict(list)
     reordered_feature_by_image = defaultdict(dict)
     for image_id, features_to_keep in keep_.items():
         for index_feat, feature_id in enumerate(features_to_keep):
@@ -196,8 +200,9 @@ def create_descriptors_and_keypoints_tabs_from_features(keep_, all_features_):
             reordered_feature_by_image[image_id][index_feat] = feature
             descriptors_feated[image_id].append([feature._descriptor, feature._ncols_descriptors])
             keypoints_feated[image_id].append([feature._position, feature._ncols_keypoints])
+            inlier_outlier[image_id].append([image_id, feature._index, feature._inlier])
 
-    return descriptors_feated, keypoints_feated, reordered_feature_by_image
+    return descriptors_feated, keypoints_feated, reordered_feature_by_image, inlier_outlier
 
 def create_match_and_2view_tabs_from_features(keep_, all_features_):
     matches_feated = defaultdict(list)
@@ -317,6 +322,14 @@ def write_twoview_to_base(twoview_feated_asarray_, db_):
 def write_matches_to_base(matches_feated_asarray_, db_):
     for pair_id in matches_feated_asarray_:
         matches_feated_asarray_[pair_id].write(db_)
+    return
+
+def write_inlier_outlier(inlier_outlier_, path_):
+    data = []
+    for image_id in inlier_outlier_:
+        for elem in inlier_outlier_[image_id]:
+            data.append(elem)
+    np.savetxt(path_, np.array(data))
     return
 
 def _align(xyz_val_, camera_, image_, safe_ = True):
@@ -481,7 +494,8 @@ def generate_GT_outliers(all_features_, keep_, two_views_withfeatures_,
                 new_feature = FEATURE(id_feature_new, image_id, feature_to_modify._point3D_id, -1,
                               position, feature_to_modify._descriptor,
                               match_right, match_left,
-                              feature_to_modify._ncols_keypoints, feature_to_modify._ncols_descriptors
+                              feature_to_modify._ncols_keypoints, feature_to_modify._ncols_descriptors,
+                              0
                              )
 
                 all_features_[id_feature_new] = new_feature
@@ -585,7 +599,7 @@ def main(args):
         print(image_id_print, len(feature), (len(feature) - before[image_id_print]) / len(feature))
 
     ### Prepare for export of data.
-    descriptors_feated, keypoints_feated, reordered_feature_by_image = create_descriptors_and_keypoints_tabs_from_features(keep, all_features)
+    descriptors_feated, keypoints_feated, reordered_feature_by_image, inlier_outlier = create_descriptors_and_keypoints_tabs_from_features(keep, all_features)
 
     matches_feated, two_view_geometry_feated = create_match_and_2view_tabs_from_features(keep, all_features)
 
@@ -604,6 +618,8 @@ def main(args):
         write_matches_to_base(matches_feated_asarray, db)
         write_twoview_to_base(twoview_feated_asarray, db)
 
+        write_inlier_outlier(inlier_outlier, args.inlier_outlier_path)
+
         # Commit the data to the file.
         db.commit()
 
@@ -618,6 +634,8 @@ if __name__ == "__main__":
                         help="input model format", default="")
     parser.add_argument("--read_database", help="path to the original database")
     parser.add_argument("--database_path", default="database.db")
+    parser.add_argument("--inlier_outlier_path", help="path to output inlier / outlier marks")
+
 
     parser.add_argument("--delete", choices=["True", "False"],
                         help="delete database when done", default="False")
