@@ -36,7 +36,7 @@ if [ "${outputPath}" == "-1" ];then
     exit 1
 fi
 
-inputModel="${initialPath}/sparse/"
+inputModel="${initialPath}/sparse/0/"
 imagePath="${initialPath}/images/"
 readDatabase="${initialPath}/database.db"
 databasePath="${workspacePath}/database.db"
@@ -89,7 +89,7 @@ do
 
         python scripts/python/test_generate.py ${genArgs}
 
-        expArgs="--workspace_path ${workspacePath} --image_path ${imagePath}"
+        expArgs="--workspace_path ${workspacePath} --image_path ${imagePath} --use_gpu False"
 
         trialCounter=0
         while [ "${trialCounter}" -ge 0 ] && [ "${trialCounter}" -le "${trialMax}" ]
@@ -126,6 +126,8 @@ do
             rm -r "${expOutputPath}0/"
             mv "TIME.txt" "${resultPath}/lrt_${trialCounter}_time.txt"
 
+            trialCounter=$((${trialCounter}+1))
+        done
         mv ${databasePath} "${resultPath}/database.db"
 
         printf "Done for inlier noise: ${stdNoise} and outlier ratio: ${outlierRatio} .\n\n"

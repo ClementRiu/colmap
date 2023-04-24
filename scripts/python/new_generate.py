@@ -185,8 +185,12 @@ class IMAGE:
         self._prior_tz = prior_tz_
 
         self._image_out = image_out_
-        self._rotation = Rot.from_quat(image_out_.qvec[[1, 2, 3, 0]]).as_matrix()
-        self._translation = image_out_.tvec
+        if image_out_:
+            self._rotation = Rot.from_quat(image_out_.qvec[[1, 2, 3, 0]]).as_matrix()
+            self._translation = image_out_.tvec
+        else:
+            self._rotation = np.zeros((3, 3))
+            self._translation = np.zeros(3)
 
     def write(self, db_to_write_):
         db_to_write_.execute(
@@ -200,11 +204,18 @@ class TWO_VIEW_GEOMETRY:
         self._cols = cols_
         self._data = data_processed_
         self._config = config_
-        self._F = np.frombuffer(F_, dtype=np.float64).reshape(3, 3)
-        self._E = np.frombuffer(E_, dtype=np.float64).reshape(3, 3)
-        self._H = np.frombuffer(H_, dtype=np.float64).reshape(3, 3)
-        self._qvec = np.frombuffer(qvec_, dtype=np.float64)
-        self._tvec = np.frombuffer(tvec_, dtype=np.float64)
+        if rows_ > 0:
+            self._F = np.frombuffer(F_, dtype=np.float64).reshape(3, 3)
+            self._E = np.frombuffer(E_, dtype=np.float64).reshape(3, 3)
+            self._H = np.frombuffer(H_, dtype=np.float64).reshape(3, 3)
+            self._qvec = np.frombuffer(qvec_, dtype=np.float64)
+            self._tvec = np.frombuffer(tvec_, dtype=np.float64)
+        else:
+            self._F = np.zeros((3, 3))
+            self._E = np.zeros((3, 3))
+            self._H = np.zeros((3, 3))
+            self._qvec = np.array([ 0., -0., -0., -0.])
+            self._tvec = np.array([-0., -0., -0.])
 
         self._id_pair = pair_id_to_image_ids(pair_id_)
 
@@ -232,8 +243,10 @@ class MATCH:
         self._pair_id = pair_id_
         self._rows = rows_
         self._cols = cols_
-        self._data = np.frombuffer(data_, dtype=np.int32).reshape(rows_, cols_)
-
+        if rows_ > 0:
+            self._data = np.frombuffer(data_, dtype=np.int32).reshape(rows_, cols_)
+        else:
+            self._data = None
         self._id_pair = pair_id_to_image_ids(pair_id_)
 
     def write(self, db_to_write_):
@@ -266,8 +279,11 @@ class IMAGES:
     def __init__(self, db_to_read_, images_out_):
         self._images = {}
         for image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz in db_to_read_.execute("SELECT image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz FROM images"):
-            image_out = images_out_[image_id]
-            assert(image_out.name == name)
+            if image_id in images_out_.keys():
+                image_out = images_out_[image_id]
+                assert(image_out.name == name)
+            else:
+                image_out = None
             self._images[image_id] = IMAGE(image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz, image_out)
 
     def write_to_base(self, db_to_write_):
@@ -278,21 +294,27 @@ class TWO_VIEW_GEOMETRYS:
     def __init__(self, db_to_read_, images_, validate_=False):
         self._two_view_geometries = {}
         for pair_id, rows, cols, data, config, F, E, H, qvec, tvec in db_to_read_.execute("SELECT pair_id, rows, cols, data, config, F, E, H, qvec, tvec FROM two_view_geometries"):
-            data = np.frombuffer(data, dtype=np.int32).reshape(rows, cols)
-            if validate_:
-                id_pair = pair_id_to_image_ids(pair_id)
-                image1 = images_[id_pair[0]]
-                image2 = images_[id_pair[1]]
-                valid_data = []
-                for feature_idx1, feature_idx2 in data:
-                    if image1.point3D_ids[feature_idx1] !=-1 and image2.point3D_ids[feature_idx2] != -1:
-                        valid_data.append([feature_idx1, feature_idx2])
-                valid_data = np.array(valid_data, dtype=np.int32)
-                valid_rows = len(valid_data)
+            if rows > 0:
+                data = np.frombuffer(data, dtype=np.int32).reshape(rows, cols)
+                if validate_:
+                    id_pair = pair_id_to_image_ids(pair_id)
+                    if id_pair[0] in images_.keys() and id_pair[1] in images_.keys():
+                        image1 = images_[id_pair[0]]
+                        image2 = images_[id_pair[1]]
+                        valid_data = []
+                        for feature_idx1, feature_idx2 in data:
+                            if image1.point3D_ids[feature_idx1] !=-1 and image2.point3D_ids[feature_idx2] != -1:
+                                valid_data.append([feature_idx1, feature_idx2])
+                        valid_data = np.array(valid_data, dtype=np.int32)
+                        valid_rows = len(valid_data)
+                    else:
+                        continue
+                else:
+                    valid_data = data
+                    valid_rows = rows
+                self._two_view_geometries[pair_id] = TWO_VIEW_GEOMETRY(pair_id, valid_rows, cols, valid_data, config, F, E, H, qvec, tvec)
             else:
-                valid_data = data
-                valid_rows = rows
-            self._two_view_geometries[pair_id] = TWO_VIEW_GEOMETRY(pair_id, valid_rows, cols, valid_data, config, F, E, H, qvec, tvec)
+                self._two_view_geometries[pair_id] = TWO_VIEW_GEOMETRY(pair_id, 0, cols, None, config, None, None, None, None, None)
 
     def write_to_base(self, db_to_write_):
         for pair_id in self._two_view_geometries:

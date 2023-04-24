@@ -128,9 +128,10 @@ def assign_match_by_id(Two_view_geometrys_):
     image_left = defaultdict(lambda: defaultdict(list))
     for id_pair, two_view in Two_view_geometrys_._two_view_geometries.items():
         image_id1, image_id2 = two_view._id_pair
-        for id_feature1, id_feature2 in two_view._data:
-            image_right[image_id1][id_feature1].append([image_id2, id_feature2])
-            image_left[image_id2][id_feature2].append([image_id1, id_feature1])
+        if two_view._data is not None:
+            for id_feature1, id_feature2 in two_view._data:
+                image_right[image_id1][id_feature1].append([image_id2, id_feature2])
+                image_left[image_id2][id_feature2].append([image_id1, id_feature1])
 
     return image_right, image_left
 
@@ -140,6 +141,8 @@ def create_individual_feature(Keypoints_, Images_, Descriptors_, image_right_, i
 
     id_feature = 0
     for image_id, keypoints in Keypoints_._keypoints.items():
+        if Images_._images[image_id]._image_out is None:
+            continue
         for index in range(keypoints._rows):
             point3D_id = Images_._images[image_id]._image_out.point3D_ids[index]
             descriptor = Descriptors_._descriptors[image_id]
@@ -176,11 +179,12 @@ def correct_match_ids(Two_view_geometrys_, features_by_image_, all_features_):
     match_to_left = defaultdict(list)
     for id_pair, two_view in Two_view_geometrys_._two_view_geometries.items():
         image_id1, image_id2 = two_view._id_pair
-        for id_feature1, id_feature2 in two_view._data:
-            feature1 = features_by_image_[image_id1][id_feature1]
-            feature2 = features_by_image_[image_id2][id_feature2]
-            match_to_right[feature1._feature_id].append(feature2._feature_id)
-            match_to_left[feature2._feature_id].append(feature1._feature_id)
+        if two_view._data is not None:
+            for id_feature1, id_feature2 in two_view._data:
+                feature1 = features_by_image_[image_id1][id_feature1]
+                feature2 = features_by_image_[image_id2][id_feature2]
+                match_to_right[feature1._feature_id].append(feature2._feature_id)
+                match_to_left[feature2._feature_id].append(feature1._feature_id)
 
     for feature_id, feature in all_features_.items():
         feature._match_right = match_to_right[feature_id]
@@ -301,7 +305,18 @@ def create_new_2view_asarray(two_view_geometry_feated_, Two_view_geometrys_):
                                                    two_view_init._config,
                                                    two_view_init._F, two_view_init._E, two_view_init._H,
                                                    two_view_init._qvec, two_view_init._tvec)
-
+    for pair_id in Two_view_geometrys_._two_view_geometries.keys():
+        if pair_id in twoview_feated_asarray.keys():
+            continue
+        twoview_feated_asarray[pair_id] = ng.TWO_VIEW_GEOMETRY(pair_id,
+                                                   1, 2,
+                                                   np.array([[0, 0]]).astype(np.int32),
+                                                   0,
+                                                   np.zeros((3, 3)),
+                                                   np.zeros((3, 3)),
+                                                   np.zeros((3, 3)),
+                                                   np.array([ 0., -0., -0., -0.]),
+                                                   np.array([-0., -0., -0.]))
     return twoview_feated_asarray
 
 def write_descriptors_to_base(descriptors_feated_asarray_, db_):
