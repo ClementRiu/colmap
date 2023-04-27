@@ -10,77 +10,6 @@ IS_PYTHON3 = sys.version_info[0] >= 3
 
 MAX_IMAGE_ID = 2**31 - 1
 
-# CREATE_CAMERAS_TABLE = """CREATE TABLE IF NOT EXISTS cameras (
-#     camera_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-#     model INTEGER NOT NULL,
-#     width INTEGER NOT NULL,
-#     height INTEGER NOT NULL,
-#     params BLOB,
-#     prior_focal_length INTEGER NOT NULL)"""
-#
-# CREATE_DESCRIPTORS_TABLE = """CREATE TABLE IF NOT EXISTS descriptors (
-#     image_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB,
-#     FOREIGN KEY(image_id) REFERENCES images(image_id) ON DELETE CASCADE)"""
-#
-# CREATE_IMAGES_TABLE = """CREATE TABLE IF NOT EXISTS images (
-#     image_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-#     name TEXT NOT NULL UNIQUE,
-#     camera_id INTEGER NOT NULL,
-#     prior_qw REAL,
-#     prior_qx REAL,
-#     prior_qy REAL,
-#     prior_qz REAL,
-#     prior_tx REAL,
-#     prior_ty REAL,
-#     prior_tz REAL,
-#     CONSTRAINT image_id_check CHECK(image_id >= 0 and image_id < {}),
-#     FOREIGN KEY(camera_id) REFERENCES cameras(camera_id))
-# """.format(MAX_IMAGE_ID)
-#
-# CREATE_TWO_VIEW_GEOMETRIES_TABLE = """
-# CREATE TABLE IF NOT EXISTS two_view_geometries (
-#     pair_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB,
-#     config INTEGER NOT NULL,
-#     F BLOB,
-#     E BLOB,
-#     H BLOB,
-#     qvec BLOB,
-#     tvec BLOB)
-# """
-#
-# CREATE_KEYPOINTS_TABLE = """CREATE TABLE IF NOT EXISTS keypoints (
-#     image_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB,
-#     FOREIGN KEY(image_id) REFERENCES images(image_id) ON DELETE CASCADE)
-# """
-#
-# CREATE_MATCHES_TABLE = """CREATE TABLE IF NOT EXISTS matches (
-#     pair_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB)"""
-#
-# CREATE_NAME_INDEX = \
-#     "CREATE UNIQUE INDEX IF NOT EXISTS index_name ON images(name)"
-#
-# CREATE_ALL = "; ".join([
-#     CREATE_CAMERAS_TABLE,
-#     CREATE_IMAGES_TABLE,
-#     CREATE_KEYPOINTS_TABLE,
-#     CREATE_DESCRIPTORS_TABLE,
-#     CREATE_MATCHES_TABLE,
-#     CREATE_TWO_VIEW_GEOMETRIES_TABLE,
-#     CREATE_NAME_INDEX
-# ])
-
 from database import image_ids_to_pair_id, pair_id_to_image_ids, array_to_blob, blob_to_array, COLMAPDatabase
 
 from read_write_model import read_model, CAMERA_MODEL_NAMES
@@ -128,10 +57,9 @@ def assign_match_by_id(Two_view_geometrys_):
     image_left = defaultdict(lambda: defaultdict(list))
     for id_pair, two_view in Two_view_geometrys_._two_view_geometries.items():
         image_id1, image_id2 = two_view._id_pair
-        if two_view._data is not None:
-            for id_feature1, id_feature2 in two_view._data:
-                image_right[image_id1][id_feature1].append([image_id2, id_feature2])
-                image_left[image_id2][id_feature2].append([image_id1, id_feature1])
+        for id_feature1, id_feature2 in two_view._data:
+            image_right[image_id1][id_feature1].append([image_id2, id_feature2])
+            image_left[image_id2][id_feature2].append([image_id1, id_feature1])
 
     return image_right, image_left
 
@@ -179,12 +107,11 @@ def correct_match_ids(Two_view_geometrys_, features_by_image_, all_features_):
     match_to_left = defaultdict(list)
     for id_pair, two_view in Two_view_geometrys_._two_view_geometries.items():
         image_id1, image_id2 = two_view._id_pair
-        if two_view._data is not None:
-            for id_feature1, id_feature2 in two_view._data:
-                feature1 = features_by_image_[image_id1][id_feature1]
-                feature2 = features_by_image_[image_id2][id_feature2]
-                match_to_right[feature1._feature_id].append(feature2._feature_id)
-                match_to_left[feature2._feature_id].append(feature1._feature_id)
+        for id_feature1, id_feature2 in two_view._data:
+            feature1 = features_by_image_[image_id1][id_feature1]
+            feature2 = features_by_image_[image_id2][id_feature2]
+            match_to_right[feature1._feature_id].append(feature2._feature_id)
+            match_to_left[feature2._feature_id].append(feature1._feature_id)
 
     for feature_id, feature in all_features_.items():
         feature._match_right = match_to_right[feature_id]
@@ -305,18 +232,6 @@ def create_new_2view_asarray(two_view_geometry_feated_, Two_view_geometrys_):
                                                    two_view_init._config,
                                                    two_view_init._F, two_view_init._E, two_view_init._H,
                                                    two_view_init._qvec, two_view_init._tvec)
-    for pair_id in Two_view_geometrys_._two_view_geometries.keys():
-        if pair_id in twoview_feated_asarray.keys():
-            continue
-        twoview_feated_asarray[pair_id] = ng.TWO_VIEW_GEOMETRY(pair_id,
-                                                   1, 2,
-                                                   np.array([[0, 0]]).astype(np.int32),
-                                                   0,
-                                                   np.zeros((3, 3)),
-                                                   np.zeros((3, 3)),
-                                                   np.zeros((3, 3)),
-                                                   np.array([ 0., -0., -0., -0.]),
-                                                   np.array([-0., -0., -0.]))
     return twoview_feated_asarray
 
 def write_descriptors_to_base(descriptors_feated_asarray_, db_):
