@@ -87,13 +87,13 @@ do
             genArgs="${genArgs} --align True"
         fi
 
-        python scripts/python/test_generate.py ${genArgs}
-
-        expArgs="--workspace_path ${workspacePath} --image_path ${imagePath} --use_gpu False"
-
         trialCounter=0
         while [ "${trialCounter}" -ge 0 ] && [ "${trialCounter}" -le "${trialMax}" ]
                 do
+            python scripts/python/test_generate.py ${genArgs}
+
+            expArgs="--workspace_path ${workspacePath} --image_path ${imagePath} --use_gpu False"
+
             build/src/exe/colmap automatic_reconstructor ${expArgs}
 
             mv "${expOutputPath}0/cameras.bin" "${resultPath}/ransac_${trialCounter}_cameras.bin"
@@ -126,9 +126,10 @@ do
             rm -r "${expOutputPath}0/"
             mv "TIME.txt" "${resultPath}/lrt_${trialCounter}_time.txt"
 
+            mv ${databasePath} "${resultPath}/database_${trialCounter}.db"
+
             trialCounter=$((${trialCounter}+1))
         done
-        mv ${databasePath} "${resultPath}/database.db"
 
         printf "Done for inlier noise: ${stdNoise} and outlier ratio: ${outlierRatio} .\n\n"
 
