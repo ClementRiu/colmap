@@ -319,9 +319,10 @@ void IncrementalMapperController::Run() {
   if (!LoadDatabase()) {
     return;
   }
+  double timeRansac = 0;
 
   IncrementalMapper::Options init_mapper_options = options_->Mapper();
-  Reconstruct(init_mapper_options);
+  Reconstruct(init_mapper_options, timeRansac);
 
   const size_t kNumInitRelaxations = 2;
   for (size_t i = 0; i < kNumInitRelaxations; ++i) {
@@ -331,7 +332,7 @@ void IncrementalMapperController::Run() {
 
     std::cout << "  => Relaxing the initialization constraints." << std::endl;
     init_mapper_options.init_min_num_inliers /= 2;
-    Reconstruct(init_mapper_options);
+    Reconstruct(init_mapper_options, timeRansac);
 
     if (reconstruction_manager_->Size() > 0 || IsStopped()) {
       break;
@@ -339,11 +340,17 @@ void IncrementalMapperController::Run() {
 
     std::cout << "  => Relaxing the initialization constraints." << std::endl;
     init_mapper_options.init_min_tri_angle /= 2;
-    Reconstruct(init_mapper_options);
+    Reconstruct(init_mapper_options, timeRansac);
   }
 
   std::cout << std::endl;
   GetTimer().PrintMinutes();
+  double genTimer = GetTimer().ElapsedSeconds();
+  std::ofstream FileTime("TIME.txt");
+  if (FileTime.is_open()){
+    FileTime << genTimer << "\n" << timeRansac << "\n";
+  }
+  FileTime.close();
 }
 
 bool IncrementalMapperController::LoadDatabase() {
@@ -380,9 +387,14 @@ bool IncrementalMapperController::LoadDatabase() {
 
   return true;
 }
-
 void IncrementalMapperController::Reconstruct(
     const IncrementalMapper::Options& init_mapper_options) {
+  double ransacTime;
+  Reconstruct(init_mapper_options, ransacTime);
+}
+
+void IncrementalMapperController::Reconstruct(
+    const IncrementalMapper::Options& init_mapper_options, double &timeRansac) {
   const bool kDiscardReconstruction = true;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -451,6 +463,11 @@ void IncrementalMapperController::Reconstruct(
 
       PrintHeading1(StringPrintf("Initializing with image pair #%d and #%d",
                                  image_id1, image_id2));
+      std::ofstream FilePair("pair.txt");
+      if (FilePair.is_open()){
+        FilePair << image_id1 << "\n" << image_id2 << "\n";
+      }
+      FilePair.close();
       const bool reg_init_success = mapper.RegisterInitialImagePair(
           init_mapper_options, image_id1, image_id2);
       if (!reg_init_success) {
@@ -599,6 +616,7 @@ void IncrementalMapperController::Reconstruct(
     }
 
     std::cout << "TIME IN RANSAC: " << ransacTimer << std::endl;
+    timeRansac += ransacTimer;
 
     if (IsStopped()) {
       const bool kDiscardReconstruction = false;

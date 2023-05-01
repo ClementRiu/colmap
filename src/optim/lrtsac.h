@@ -16,6 +16,7 @@
 #include "optim/support_measurement.h"
 #include "util/alignment.h"
 #include "util/logging.h"
+#include "util/timer.h"
 
 namespace colmap {
 

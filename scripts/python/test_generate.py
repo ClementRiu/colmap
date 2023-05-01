@@ -10,77 +10,6 @@ IS_PYTHON3 = sys.version_info[0] >= 3
 
 MAX_IMAGE_ID = 2**31 - 1
 
-# CREATE_CAMERAS_TABLE = """CREATE TABLE IF NOT EXISTS cameras (
-#     camera_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-#     model INTEGER NOT NULL,
-#     width INTEGER NOT NULL,
-#     height INTEGER NOT NULL,
-#     params BLOB,
-#     prior_focal_length INTEGER NOT NULL)"""
-#
-# CREATE_DESCRIPTORS_TABLE = """CREATE TABLE IF NOT EXISTS descriptors (
-#     image_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB,
-#     FOREIGN KEY(image_id) REFERENCES images(image_id) ON DELETE CASCADE)"""
-#
-# CREATE_IMAGES_TABLE = """CREATE TABLE IF NOT EXISTS images (
-#     image_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-#     name TEXT NOT NULL UNIQUE,
-#     camera_id INTEGER NOT NULL,
-#     prior_qw REAL,
-#     prior_qx REAL,
-#     prior_qy REAL,
-#     prior_qz REAL,
-#     prior_tx REAL,
-#     prior_ty REAL,
-#     prior_tz REAL,
-#     CONSTRAINT image_id_check CHECK(image_id >= 0 and image_id < {}),
-#     FOREIGN KEY(camera_id) REFERENCES cameras(camera_id))
-# """.format(MAX_IMAGE_ID)
-#
-# CREATE_TWO_VIEW_GEOMETRIES_TABLE = """
-# CREATE TABLE IF NOT EXISTS two_view_geometries (
-#     pair_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB,
-#     config INTEGER NOT NULL,
-#     F BLOB,
-#     E BLOB,
-#     H BLOB,
-#     qvec BLOB,
-#     tvec BLOB)
-# """
-#
-# CREATE_KEYPOINTS_TABLE = """CREATE TABLE IF NOT EXISTS keypoints (
-#     image_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB,
-#     FOREIGN KEY(image_id) REFERENCES images(image_id) ON DELETE CASCADE)
-# """
-#
-# CREATE_MATCHES_TABLE = """CREATE TABLE IF NOT EXISTS matches (
-#     pair_id INTEGER PRIMARY KEY NOT NULL,
-#     rows INTEGER NOT NULL,
-#     cols INTEGER NOT NULL,
-#     data BLOB)"""
-#
-# CREATE_NAME_INDEX = \
-#     "CREATE UNIQUE INDEX IF NOT EXISTS index_name ON images(name)"
-#
-# CREATE_ALL = "; ".join([
-#     CREATE_CAMERAS_TABLE,
-#     CREATE_IMAGES_TABLE,
-#     CREATE_KEYPOINTS_TABLE,
-#     CREATE_DESCRIPTORS_TABLE,
-#     CREATE_MATCHES_TABLE,
-#     CREATE_TWO_VIEW_GEOMETRIES_TABLE,
-#     CREATE_NAME_INDEX
-# ])
-
 from database import image_ids_to_pair_id, pair_id_to_image_ids, array_to_blob, blob_to_array, COLMAPDatabase
 
 from read_write_model import read_model, CAMERA_MODEL_NAMES
@@ -96,7 +25,8 @@ class FEATURE:
                  feature_id_, image_id_, point3D_id_, index_,
                  position_, descriptor_,
                  match_right_, match_left_,
-                 ncols_keypoints_, ncols_descriptors_):
+                 ncols_keypoints_, ncols_descriptors_,
+                 inlier_=1):
         self._feature_id = feature_id_
         self._image_id = image_id_
         self._point3D_id = point3D_id_
@@ -110,8 +40,17 @@ class FEATURE:
         self._ncols_keypoints = ncols_keypoints_
         self._ncols_descriptors = ncols_descriptors_
 
+        self._inlier = inlier_
+
     def is_valid(self):
         return len(self._match_right) + len(self._match_left) > 0
+
+    def print(self):
+        print(self._feature_id, self._image_id, self._point3D_id, self._index)
+        print('')
+        print(self._position)
+        print('')
+        print(self._match_right, self._match_left)
 
 def assign_match_by_id(Two_view_geometrys_):
     image_right = defaultdict(lambda: defaultdict(list))
@@ -130,6 +69,8 @@ def create_individual_feature(Keypoints_, Images_, Descriptors_, image_right_, i
 
     id_feature = 0
     for image_id, keypoints in Keypoints_._keypoints.items():
+        if Images_._images[image_id]._image_out is None:
+            continue
         for index in range(keypoints._rows):
             point3D_id = Images_._images[image_id]._image_out.point3D_ids[index]
             descriptor = Descriptors_._descriptors[image_id]
@@ -181,6 +122,7 @@ def correct_match_ids(Two_view_geometrys_, features_by_image_, all_features_):
 def create_descriptors_and_keypoints_tabs_from_features(keep_, all_features_):
     descriptors_feated = defaultdict(list)
     keypoints_feated = defaultdict(list)
+    inlier_outlier = defaultdict(list)
     reordered_feature_by_image = defaultdict(dict)
     for image_id, features_to_keep in keep_.items():
         for index_feat, feature_id in enumerate(features_to_keep):
@@ -189,8 +131,9 @@ def create_descriptors_and_keypoints_tabs_from_features(keep_, all_features_):
             reordered_feature_by_image[image_id][index_feat] = feature
             descriptors_feated[image_id].append([feature._descriptor, feature._ncols_descriptors])
             keypoints_feated[image_id].append([feature._position, feature._ncols_keypoints])
+            inlier_outlier[image_id].append([image_id, feature._index, feature._inlier])
 
-    return descriptors_feated, keypoints_feated, reordered_feature_by_image
+    return descriptors_feated, keypoints_feated, reordered_feature_by_image, inlier_outlier
 
 def create_match_and_2view_tabs_from_features(keep_, all_features_):
     matches_feated = defaultdict(list)
@@ -245,7 +188,7 @@ def create_new_descriptor_arrays(descriptors_feated_):
                 descript_as_array[index, :] = descriptor[0]
         descriptors_feated_asarray[image_id] = ng.DESCRIPTOR(image_id,
                                                              num_row, num_col,
-                                                             array_to_blob(descript_as_array.astype(np.int8)))
+                                                             descript_as_array.astype(np.int8))
     return descriptors_feated_asarray
 
 def create_new_keypoint_asarray(keypoints_feated_):
@@ -261,35 +204,37 @@ def create_new_keypoint_asarray(keypoints_feated_):
                 keypoint_as_array[index, :] = keypoint[0]
         keypoints_feated_asarray[image_id] = ng.KEYPOINT(image_id,
                                                          num_row, num_col,
-                                                         array_to_blob(keypoint_as_array.astype(np.float32)))
+                                                         keypoint_as_array.astype(np.float32))
     return keypoints_feated_asarray
 
-def create_new_matches_asarray(matches_feated_):
+def create_new_matches_asarray(matches_feated_, Matches_in_):
     matches_feated_asarray = {}
-    for pair_id, matches in matches_feated_.items():
+    for match_in in Matches_in_._matches:
+        pair_id = match_in._pair_id
+        matches = matches_feated_[pair_id]
         num_row = len(matches)
         num_col = 2
-        match_as_array = np.array(matches)
+        match_as_array = np.array(matches, dtype=np.int32).reshape(num_row, num_col)
         matches_feated_asarray[pair_id] = ng.MATCH(pair_id,
                                                    num_row, num_col,
-                                                   array_to_blob(match_as_array.astype(np.int32)))
+                                                   match_as_array)
 
     return matches_feated_asarray
 
 def create_new_2view_asarray(two_view_geometry_feated_, Two_view_geometrys_):
     twoview_feated_asarray = {}
-    for pair_id, two_view in two_view_geometry_feated_.items():
+    for pair_id in Two_view_geometrys_._two_view_geometries.keys():
+        two_view = two_view_geometry_feated_[pair_id]
         num_row = len(two_view)
         num_col = 2
-        twoview_as_array = np.array(two_view)
+        twoview_as_array = np.array(two_view, dtype=np.int32).reshape(num_row, num_col)
         two_view_init = Two_view_geometrys_._two_view_geometries[pair_id]
         twoview_feated_asarray[pair_id] = ng.TWO_VIEW_GEOMETRY(pair_id,
                                                    num_row, num_col,
-                                                   twoview_as_array.astype(np.int32),
+                                                   twoview_as_array,
                                                    two_view_init._config,
                                                    two_view_init._F, two_view_init._E, two_view_init._H,
                                                    two_view_init._qvec, two_view_init._tvec)
-
     return twoview_feated_asarray
 
 def write_descriptors_to_base(descriptors_feated_asarray_, db_):
@@ -312,6 +257,14 @@ def write_matches_to_base(matches_feated_asarray_, db_):
         matches_feated_asarray_[pair_id].write(db_)
     return
 
+def write_inlier_outlier(inlier_outlier_, path_):
+    data = []
+    for image_id in inlier_outlier_:
+        for elem in inlier_outlier_[image_id]:
+            data.append(elem)
+    np.savetxt(path_, np.array(data))
+    return
+
 def _align(xyz_val_, camera_, image_, safe_ = True):
     uv_val = camera_._calib.dot(image_._rotation.dot(xyz_val_) + image_._translation)
     if uv_val[2] > 0 or (uv_val[2] < 0 and not safe_):
@@ -326,7 +279,7 @@ def _add_noise(uv_val_, noise_std_, camera_):
     truncated = np.clip(noisy_uv_val, a_min = [0, 0], a_max = [camera_._width, camera_._height])
     return truncated
 
-def generate_GT_inliers(keep_, all_features_, Images_, Cameras_, points3D_out_, noise_std_):
+def generate_GT_inliers(keep_, all_features_, Images_, Cameras_, points3D_out_, noise_std_, init_image1 = -1, init_image2 = -1):
     max_pert = 0
     for image_id, features_to_keep in keep_.items():
         for feature_id in features_to_keep:
@@ -335,13 +288,15 @@ def generate_GT_inliers(keep_, all_features_, Images_, Cameras_, points3D_out_, 
             camera = Cameras_._cameras[image._camera_id]
             xyz_val = points3D_out_[feature._point3D_id].xyz
             uv_val = _align(xyz_val, camera, image)
+            if image_id == init_image1 or image_id == init_image2:
+                continue
             if noise_std_ > 0:
                 uv_val_pert = _add_noise(uv_val, noise_std_, camera)
                 pert = np.linalg.norm(uv_val - uv_val_pert)
                 uv_val = uv_val_pert
                 if pert > max_pert:
                     max_pert = pert
-            feature._position[:2] = uv_val
+            feature._position = np.hstack([uv_val, feature._position[2:]])
     return max_pert
 
 def create_2view_featured(Two_view_geometrys_, features_by_image_):
@@ -405,15 +360,16 @@ def _generate_outlier(xyz_val_, camera_, image_, min_offset_, iteration_, max_it
 
 def generate_GT_outliers(all_features_, keep_, two_views_withfeatures_,
                          outlier_ratio_, max_inlier_error_, max_try_outlier_,
-                         Images_, Cameras_, points3D_out_):
+                         Images_, Cameras_, points3D_out_,
+                         init_image1 = -1, init_image2 = -1):
     id_feature_new = len(all_features_)
     for id_pair, two_view in two_views_withfeatures_.items():
         image_ids = pair_id_to_image_ids(id_pair)
-        if 1 in image_ids and 9 in image_ids:
+        if init_image1 in image_ids and init_image2 in image_ids:
             continue
-        elif 1 in image_ids:
+        elif init_image1 == image_ids[0] or init_image2 == image_ids[0]:
             side = 1
-        elif 9 in image_ids:
+        elif init_image1 == image_ids[1] or init_image2 == image_ids[1]:
             side = 0
         else:
             side = np.random.randint(0, 2)
@@ -442,8 +398,7 @@ def generate_GT_outliers(all_features_, keep_, two_views_withfeatures_,
                                             max_inlier_error_, iteration, max_try_outlier_ + num_outlier_req)
 
             if outlier_pos is not None:
-                position = feature_to_modify._position
-                position[:2] = outlier_pos
+                position = np.hstack([outlier_pos, feature_to_modify._position[2:]])
 
                 if side:
                     idx_to_change_side = \
@@ -472,13 +427,44 @@ def generate_GT_outliers(all_features_, keep_, two_views_withfeatures_,
                 new_feature = FEATURE(id_feature_new, image_id, feature_to_modify._point3D_id, -1,
                               position, feature_to_modify._descriptor,
                               match_right, match_left,
-                              feature_to_modify._ncols_keypoints, feature_to_modify._ncols_descriptors
+                              feature_to_modify._ncols_keypoints, feature_to_modify._ncols_descriptors,
+                              0
                              )
 
                 all_features_[id_feature_new] = new_feature
                 keep_[image_id].add(id_feature_new)
                 id_feature_new += 1
     return None
+
+def check_duplicate(keypoints_feated_asarray_,
+                    matches_feated_asarray_, twoview_feated_asarray_,
+                    verbose_=False):
+    max_diff = 0
+    if verbose_:
+        print("Keypoints:")
+    for index, elem in keypoints_feated_asarray_.items():
+        diff = len(elem._data) - len(np.unique(elem._data, axis=0))
+        if max_diff < diff:
+            max_diff = diff
+        if verbose_:
+            print(index, diff)
+    if verbose_:
+        print("Matches:")
+    for index, elem in matches_feated_asarray_.items():
+        diff = len(elem._data) - len(np.unique(elem._data, axis=0))
+        if max_diff < diff:
+            max_diff = diff
+        if verbose_:
+            print(pair_id_to_image_ids(index), diff)
+    if verbose_:
+        print("Two View:")
+    for index, elem in twoview_feated_asarray_.items():
+        diff = len(elem._data) - len(np.unique(elem._data, axis=0))
+        if max_diff < diff:
+            max_diff = diff
+        if verbose_:
+            print(pair_id_to_image_ids(index), diff)
+    return max_diff
 
 def main(args):
     ### Import output of some run.
@@ -500,7 +486,7 @@ def main(args):
     Cameras_in = ng.CAMERAS(db_to_read, cameras_out)
     Images_in = ng.IMAGES(db_to_read, images_out)
 
-    Two_view_geometrys_in = ng.TWO_VIEW_GEOMETRYS(db_to_read, images_out, args.validate)
+    Two_view_geometrys_in = ng.TWO_VIEW_GEOMETRYS(db_to_read, images_out, args.validate == "True")
 
     Matches_in = ng.MATCHES(db_to_read) # Technically useless.
 
@@ -525,35 +511,50 @@ def main(args):
     ### Data is loaded and ready for processing.
     max_inlier_error = 0
     if args.align =="True":
-        max_inlier_error = generate_GT_inliers(keep, all_features, Images_in, Cameras_in, points3D_out, args.noise_std)
+        max_inlier_error = generate_GT_inliers(keep, all_features, Images_in, Cameras_in, points3D_out, args.noise_std, args.init_image1, args.init_image2)
+
+    print("=============  Before =============")
+    before = {}
+    for image_id_print, feature in keep.items():
+        print(image_id_print, len(feature))
+        before[image_id_print] = len(feature)
 
     if args.outlier_ratio > 0:
         two_views_withfeatures = create_2view_featured(Two_view_geometrys_in, features_by_image)
 
         generate_GT_outliers(all_features, keep, two_views_withfeatures,
                              args.outlier_ratio, max_inlier_error, args.max_try_outlier,
-                             Images_in, Cameras_in, points3D_out)
+                             Images_in, Cameras_in, points3D_out,
+                             args.init_image1, args.init_image2)
 
+    print("============= After =============")
+    for image_id_print, feature in keep.items():
+        print(image_id_print, len(feature), (len(feature) - before[image_id_print]) / len(feature))
 
     ### Prepare for export of data.
-    descriptors_feated, keypoints_feated, reordered_feature_by_image = create_descriptors_and_keypoints_tabs_from_features(keep, all_features)
+    descriptors_feated, keypoints_feated, reordered_feature_by_image, inlier_outlier = create_descriptors_and_keypoints_tabs_from_features(keep, all_features)
 
     matches_feated, two_view_geometry_feated = create_match_and_2view_tabs_from_features(keep, all_features)
 
     descriptors_feated_asarray = create_new_descriptor_arrays(descriptors_feated)
     keypoints_feated_asarray = create_new_keypoint_asarray(keypoints_feated)
-    matches_feated_asarray = create_new_matches_asarray(matches_feated)
+    matches_feated_asarray = create_new_matches_asarray(matches_feated, Matches_in)
     twoview_feated_asarray = create_new_2view_asarray(two_view_geometry_feated, Two_view_geometrys_in)
 
-    Cameras_in.write_to_base(db)
-    Images_in.write_to_base(db)
-    write_descriptors_to_base(descriptors_feated_asarray, db)
-    write_keypoints_to_base(keypoints_feated_asarray, db)
-    write_matches_to_base(matches_feated_asarray, db)
-    write_twoview_to_base(twoview_feated_asarray, db)
+    duplicate_max = check_duplicate(keypoints_feated_asarray, matches_feated_asarray, twoview_feated_asarray)
+    if duplicate_max == 0:
 
-    # Commit the data to the file.
-    db.commit()
+        Cameras_in.write_to_base(db)
+        Images_in.write_to_base(db)
+        write_descriptors_to_base(descriptors_feated_asarray, db)
+        write_keypoints_to_base(keypoints_feated_asarray, db)
+        write_matches_to_base(matches_feated_asarray, db)
+        write_twoview_to_base(twoview_feated_asarray, db)
+
+        write_inlier_outlier(inlier_outlier, args.inlier_outlier_path)
+
+        # Commit the data to the file.
+        db.commit()
 
     # Clean up.
     db.close()
@@ -566,6 +567,8 @@ if __name__ == "__main__":
                         help="input model format", default="")
     parser.add_argument("--read_database", help="path to the original database")
     parser.add_argument("--database_path", default="database.db")
+    parser.add_argument("--inlier_outlier_path", help="path to output inlier / outlier marks")
+
 
     parser.add_argument("--delete", choices=["True", "False"],
                         help="delete database when done", default="False")
@@ -576,6 +579,11 @@ if __name__ == "__main__":
                         help="Align points with 3D", default="False")
     parser.add_argument("--noise_std", type=float,
                         help="Noise level of inliers", default=0.0)
+
+    parser.add_argument("--init_image1", type=int,
+                        help="Image to leave unchanged", default=-1)
+    parser.add_argument("--init_image2", type=int,
+                        help="Image to leave unchanged", default=-1)
 
     parser.add_argument("--outlier_ratio", type=float,
                         help="Ratio of outliers in the total number of points.", default=0.0)

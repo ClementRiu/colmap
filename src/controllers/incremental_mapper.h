@@ -68,7 +68,7 @@ struct IncrementalMapperOptions {
   int init_image_id2 = -1;
 
   // The number of trials to initialize the reconstruction.
-  int init_num_trials = 200;
+  int init_num_trials = 1;
 
   // Whether to extract colors for reconstructed points.
   bool extract_colors = true;
@@ -176,6 +176,8 @@ class IncrementalMapperController : public Thread {
   void Run();
   bool LoadDatabase();
   void Reconstruct(const IncrementalMapper::Options& init_mapper_options);
+  void Reconstruct(const IncrementalMapper::Options& init_mapper_options, double &timeRansac);
+
 
   const IncrementalMapperOptions* options_;
   const std::string image_path_;

@@ -1,0 +1,17 @@
+```
+git clone https://github.com/colmap/colmap.git
+cd colmap
+git checkout dev
+mkdir build
+cd build
+cmake ..
+make -j
+sudo make install
+```
+
+https://demuc.de/colmap/datasets/
+
+Usage :
+```
+bash scripts/shell/run_experiment.sh --initialPath ../colmap_dataset/gerrard-hall-small-backup/ --workspacePath ../colmap_dataset/gerrard-hall-small/ --outputPath ../colmap_exp/test5/ --initImage1 3 --initImage2 7
+```
