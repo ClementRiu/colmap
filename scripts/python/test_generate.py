@@ -188,7 +188,7 @@ def create_new_descriptor_arrays(descriptors_feated_):
                 descript_as_array[index, :] = descriptor[0]
         descriptors_feated_asarray[image_id] = ng.DESCRIPTOR(image_id,
                                                              num_row, num_col,
-                                                             array_to_blob(descript_as_array.astype(np.int8)))
+                                                             descript_as_array.astype(np.int8))
     return descriptors_feated_asarray
 
 def create_new_keypoint_asarray(keypoints_feated_):
@@ -204,31 +204,34 @@ def create_new_keypoint_asarray(keypoints_feated_):
                 keypoint_as_array[index, :] = keypoint[0]
         keypoints_feated_asarray[image_id] = ng.KEYPOINT(image_id,
                                                          num_row, num_col,
-                                                         array_to_blob(keypoint_as_array.astype(np.float32)))
+                                                         keypoint_as_array.astype(np.float32))
     return keypoints_feated_asarray
 
-def create_new_matches_asarray(matches_feated_):
+def create_new_matches_asarray(matches_feated_, Matches_in_):
     matches_feated_asarray = {}
-    for pair_id, matches in matches_feated_.items():
+    for match_in in Matches_in_._matches:
+        pair_id = match_in._pair_id
+        matches = matches_feated_[pair_id]
         num_row = len(matches)
         num_col = 2
-        match_as_array = np.array(matches)
+        match_as_array = np.array(matches, dtype=np.int32).reshape(num_row, num_col)
         matches_feated_asarray[pair_id] = ng.MATCH(pair_id,
                                                    num_row, num_col,
-                                                   array_to_blob(match_as_array.astype(np.int32)))
+                                                   match_as_array)
 
     return matches_feated_asarray
 
 def create_new_2view_asarray(two_view_geometry_feated_, Two_view_geometrys_):
     twoview_feated_asarray = {}
-    for pair_id, two_view in two_view_geometry_feated_.items():
+    for pair_id in Two_view_geometrys_._two_view_geometries.keys():
+        two_view = two_view_geometry_feated_[pair_id]
         num_row = len(two_view)
         num_col = 2
-        twoview_as_array = np.array(two_view)
+        twoview_as_array = np.array(two_view, dtype=np.int32).reshape(num_row, num_col)
         two_view_init = Two_view_geometrys_._two_view_geometries[pair_id]
         twoview_feated_asarray[pair_id] = ng.TWO_VIEW_GEOMETRY(pair_id,
                                                    num_row, num_col,
-                                                   twoview_as_array.astype(np.int32),
+                                                   twoview_as_array,
                                                    two_view_init._config,
                                                    two_view_init._F, two_view_init._E, two_view_init._H,
                                                    two_view_init._qvec, two_view_init._tvec)
@@ -483,7 +486,7 @@ def main(args):
     Cameras_in = ng.CAMERAS(db_to_read, cameras_out)
     Images_in = ng.IMAGES(db_to_read, images_out)
 
-    Two_view_geometrys_in = ng.TWO_VIEW_GEOMETRYS(db_to_read, images_out, args.validate)
+    Two_view_geometrys_in = ng.TWO_VIEW_GEOMETRYS(db_to_read, images_out, args.validate == "True")
 
     Matches_in = ng.MATCHES(db_to_read) # Technically useless.
 
@@ -535,7 +538,7 @@ def main(args):
 
     descriptors_feated_asarray = create_new_descriptor_arrays(descriptors_feated)
     keypoints_feated_asarray = create_new_keypoint_asarray(keypoints_feated)
-    matches_feated_asarray = create_new_matches_asarray(matches_feated)
+    matches_feated_asarray = create_new_matches_asarray(matches_feated, Matches_in)
     twoview_feated_asarray = create_new_2view_asarray(two_view_geometry_feated, Two_view_geometrys_in)
 
     duplicate_max = check_duplicate(keypoints_feated_asarray, matches_feated_asarray, twoview_feated_asarray)

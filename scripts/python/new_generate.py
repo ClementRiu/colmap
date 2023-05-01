@@ -211,12 +211,12 @@ class TWO_VIEW_GEOMETRY:
             self._F = np.frombuffer(F_, dtype=np.float64).reshape(3, 3)
         else:
             self._F = np.eye(3, dtype=np.float64)
-            self._F[3, 3] = 0
+            self._F[2, 2] = 0
         if E_ is not None:
             self._E = np.frombuffer(E_, dtype=np.float64).reshape(3, 3)
         else:
             self._E = np.eye(3, dtype=np.float64)
-            self._E[3, 3] = 0
+            self._E[2, 2] = 0
         if H_ is not None:
             self._H = np.frombuffer(H_, dtype=np.float64).reshape(3, 3)
         else:
@@ -283,7 +283,7 @@ class DESCRIPTORS:
         self._descriptors = {}
         for image_id, rows, cols, data in db_to_read_.execute("SELECT image_id, rows, cols, data FROM descriptors"):
             if data is not None:
-                data = np.frombuffer(data_, dtype=np.int8).reshape(rows_, cols_)
+                data = np.frombuffer(data, dtype=np.int8).reshape(rows, cols)
             self._descriptors[image_id] = DESCRIPTOR(image_id, rows, cols, data)
 
     def write_to_base(self, db_to_write_):
@@ -339,7 +339,7 @@ class KEYPOINTS:
         self._keypoints = {}
         for image_id, rows, cols, data in db_to_read_.execute("SELECT image_id, rows, cols, data FROM keypoints"):
             if data is not None:
-                data = np.frombuffer(bytearray(data_), dtype=np.float32).reshape(rows_, cols_)
+                data = np.frombuffer(bytearray(data), dtype=np.float32).reshape(rows, cols)
             self._keypoints[image_id] = KEYPOINT(image_id, rows, cols, data)
 
     def _align(self, xyz_val_, camera_, image_, safe_ = True):
@@ -385,7 +385,7 @@ class MATCHES:
         self._matches = []
         for pair_id, rows, cols, data in db_to_read_.execute("SELECT pair_id, rows, cols, data FROM matches"):
             if data is not None:
-                data = np.frombuffer(data_, dtype=np.int32).reshape(rows_, cols_)
+                data = np.frombuffer(data, dtype=np.int32).reshape(rows, cols)
             self._matches.append(MATCH(pair_id, rows, cols, data))
 
     def write_to_base(self, db_to_write_):
