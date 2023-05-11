@@ -74,9 +74,7 @@ do
         resultPath="${outputPath}/OUT_${stdNoise}_${outlierRatio}/"
         mkdir -p ${resultPath}
 
-        inlierOutlierPath="${resultPath}/inlier_outlier.txt"
-
-        genArgs="--input_model ${inputModel} --input_format ${inputFormat} --read_database ${readDatabase} --database_path ${databasePath} --inlier_outlier_path ${inlierOutlierPath} --noise_std ${stdNoise} --outlier_ratio ${outlierRatio} --max_try_outlier ${maxTryOutlier} --init_image1 ${initImage1} --init_image2 ${initImage2}"
+        genArgs="--input_model ${inputModel} --input_format ${inputFormat} --read_database ${readDatabase} --database_path ${databasePath} --noise_std ${stdNoise} --outlier_ratio ${outlierRatio} --max_try_outlier ${maxTryOutlier} --init_image1 ${initImage1} --init_image2 ${initImage2}"
         if [ "${delete}" -eq "1" ]; then
             genArgs="${genArgs} --delete True"
         fi
@@ -90,6 +88,10 @@ do
         trialCounter=0
         while [ "${trialCounter}" -ge 0 ] && [ "${trialCounter}" -le "${trialMax}" ]
                 do
+            inlierOutlierPath="${resultPath}/inlier_outlier_${trialCounter}.txt"
+
+            genArgs="${genArgs} --inlier_outlier_path ${inlierOutlierPath}"
+
             python scripts/python/test_generate.py ${genArgs}
 
             expArgs="--workspace_path ${workspacePath} --image_path ${imagePath} --use_gpu False"
