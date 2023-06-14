@@ -64,8 +64,8 @@ struct IncrementalMapperOptions {
   // The image identifiers used to initialize the reconstruction. Note that
   // only one or both image identifiers can be specified. In the former case,
   // the second image is automatically determined.
-  int init_image_id1 = -1;
-  int init_image_id2 = -1;
+  int init_image_id1 = 1;
+  int init_image_id2 = 2;
 
   // The number of trials to initialize the reconstruction.
   int init_num_trials = 1;

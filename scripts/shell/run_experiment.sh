@@ -11,7 +11,7 @@ validate=${validate:-1}
 align=${align:-1}
 maxTryOutlier=${maxTryOutlier:-100}
 
-trialMax=${trialMax:-10}
+trialMax=${trialMax:-9}
 
 while [ $# -gt 0 ]; do
 
