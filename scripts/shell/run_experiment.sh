@@ -6,6 +6,8 @@ outputPath=${outputPath:--1}
 initImage1=${initImage1:--1}
 initImage2=${initImage2:--1}
 
+numberImages=${numberImages:--1}
+
 delete=${delete:-0}
 validate=${validate:-1}
 align=${align:-1}
@@ -33,6 +35,10 @@ if [ "${workspacePath}" == "-1" ];then
 fi
 if [ "${outputPath}" == "-1" ];then
     printf "\nOutput folder requiered (outputPath):\n"
+    exit 1
+fi
+if [ "${numberImages}" == "-1" ];then
+    printf "\nNumber of images requiered (numberImages):\n"
     exit 1
 fi
 
@@ -132,6 +138,11 @@ do
 
             trialCounter=$((${trialCounter}+1))
         done
+
+        condArgs="--global_path ${outputPath} --std_val ${stdNoise} --std_index ${stdNoiseCounter} --outlier_val ${outlierRatio} --outlier_index ${outlierRatioCounter} --num_images ${numberImages} --num_trial ${trialMax}"
+
+        python scripts/python/condense_runinfo.py ${condArgs}
+        rm -rf ${resultPath}
 
         printf "Done for inlier noise: ${stdNoise} and outlier ratio: ${outlierRatio} .\n\n"
 
