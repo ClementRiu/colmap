@@ -63,6 +63,7 @@ if __name__ == "__main__":
     precision_values = np.zeros((num_trial, len(algorithms)))
     recall_values = np.zeros((num_trial, len(algorithms)))
     images_seen_values = np.zeros((num_trial, len(algorithms)))
+    images_posi_values = np.zeros((num_trial, len(algorithms), num_images, 8))
 
     std_val_filename = format_value_for_filename(std_val)
     outlier_val_filename = format_value_for_filename(outlier_val)
@@ -84,6 +85,10 @@ if __name__ == "__main__":
                     num_images_seen = 0
                     for i_image, image_val in enumerate(image_nums):
                         if (image_val in images_result.keys()):
+                            images_posi_values[i_trial, i_algo, i_image, 0] = image_val
+                            images_posi_values[i_trial, i_algo, i_image, 1:5] = images_result[image_val].qvec
+                            images_posi_values[i_trial, i_algo, i_image, 5:] = images_result[image_val].tvec
+
                             num_images_seen += 1
                             num_true_positive += np.sum(inlier_outlier_data[np.where(inlier_outlier_data[:, 0] == image_val)][images_result[image_val].point3D_ids > 0, 2])
                             num_estimated_positive += np.sum(images_result[image_val].point3D_ids > 0)
@@ -101,5 +106,6 @@ if __name__ == "__main__":
     np.save(path_out.format("recall_array", std_val_filename, outlier_val_filename), recall_values)
     np.save(path_out.format("image_seen_array", std_val_filename, outlier_val_filename), images_seen_values)
     np.save(path_out.format("time_array", std_val_filename, outlier_val_filename), time_values)
+    np.save(path_out.format("image_position", std_val_filename, outlier_val_filename), images_posi_values)
 
     print("XXXXXXXXXXXXXXXXXXXXXXXX ... Analysis done and saved. XXXXXXXXXXXXXXXXXXXXXXXX")
