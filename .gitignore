@@ -41,3 +41,13 @@ doc/_build
 *.exe
 *.out
 *.app
+
+colmap*.riuc-XPS-8940.riuclement.log.*
+colmap80.INFO
+colmap80.WARNING
+colmap_AC80.INFO
+colmap_AC80.WARNING
+colmap_FastAC80.INFO
+colmap_FastAC80.WARNING
+colmap_LRT80.INFO
+colmap_LRT80.WARNING
