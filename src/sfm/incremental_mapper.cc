@@ -526,7 +526,7 @@ bool IncrementalMapper::RegisterNextImage(const Options& options,
   //////////////////////////////////////////////////////////////////////////////
   // Pose refinement
   //////////////////////////////////////////////////////////////////////////////
-
+/// TODO: HERE TO CHANGE
   if (!RefineAbsolutePose(abs_pose_refinement_options, inlier_mask,
                           tri_points2D, tri_points3D, &image.Qvec(),
                           &image.Tvec(), &camera)) {
